@@ -7,6 +7,7 @@ const ASLRecognizer = dynamic(() => import("./components/ASLRecognizer"), {
   ssr: false,
   loading: () => (
     <div className="panel-grid">
+      
       <div className="panel">
         <div className="panel-header">
           <h2>Camera Preview</h2>
