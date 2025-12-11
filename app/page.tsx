@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Logo from "./components/Logo";
 
 const ASLRecognizer = dynamic(() => import("./components/ASLRecognizer"), {
   ssr: false,
@@ -40,9 +41,12 @@ export default function Home() {
     <div className="app-container">
       <header className="app-header">
         <div className="header-content">
-          <div className="app-branding">
-            <h1>sign2voice work</h1>
-            <p>ASL → voice, live workplace communication</p>
+          <div className="header-left">
+            <Logo />
+            <div className="app-branding">
+              <h1>sign2voice work</h1>
+              <p>ASL → voice, live workplace communication</p>
+            </div>
           </div>
           <div className="session-block">
             <div className="avatar">JD</div>

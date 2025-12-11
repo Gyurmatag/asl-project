@@ -78,16 +78,20 @@ html, body {
 .app-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow-y: auto;
 }
 
 .app-header {
-  background: var(--color-background);
   color: var(--color-text);
   padding: var(--gap-xs) var(--gap-lg);
   flex-shrink: 0;
   border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.98);
   box-shadow: var(--shadow-sm);
 }
 
@@ -98,6 +102,44 @@ html, body {
   max-width: 1600px;
   margin: 0 auto;
   width: 100%;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-base);
+}
+
+.logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  color: var(--color-text);
+  transition: transform 0.2s ease;
+}
+
+.logo-container:hover {
+  transform: scale(1.02);
+}
+
+.logo-svg {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.logo-container:hover .logo-svg {
+  transform: scale(1.05);
+}
+
+.logo-text {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--color-text);
+  white-space: nowrap;
+  text-align: center;
+  margin-top: -2px;
 }
 
 .app-branding h1 {
@@ -149,7 +191,7 @@ html, body {
 
 .app-main {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
   padding: var(--gap-base);
   max-width: 1600px;
   margin: 0 auto;
@@ -161,7 +203,7 @@ html, body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--gap-base);
-  height: 100%;
+  min-height: 0;
 }
 
 /* Hidden situations panel */
@@ -851,23 +893,78 @@ html, body {
    RESPONSIVE DESIGN
    ============================================ */
 
+@media (max-width: 1400px) {
+  .app-main {
+    padding: var(--gap-lg);
+  }
+}
+
 @media (max-width: 1200px) {
   .panel-grid {
     grid-template-columns: 1fr;
+    gap: var(--gap-lg);
+  }
+
+  .header-content {
+    padding: 0;
+  }
+
+  .detected-letter {
+    font-size: 40px;
+  }
+
+  .confidence-bar {
+    width: 70px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .app-header {
+    padding: var(--gap-base) var(--gap-lg);
+  }
+
+  .app-main {
+    padding: var(--gap-lg);
+  }
+
+  .panel-grid {
+    gap: var(--gap-base);
+  }
+
+  .detected-letter {
+    font-size: 36px;
+    min-width: 50px;
+  }
+
+  .confidence-bar {
+    width: 60px;
+  }
+
+  .text-display {
+    font-size: var(--font-size-sm);
+    padding: var(--gap-sm);
+  }
+
+  .panel-header h2 {
+    font-size: var(--font-size-base);
   }
 }
 
 @media (max-width: 768px) {
   .app-main {
     padding: var(--gap-base);
+    overflow-y: auto;
   }
 
   .panel-grid {
     grid-template-columns: 1fr;
+    gap: var(--gap-base);
+    height: auto;
   }
 
   .panel {
     padding: var(--gap-base);
+    min-height: auto;
   }
 
   .header-content {
@@ -876,22 +973,23 @@ html, body {
     gap: var(--gap-base);
   }
 
-  .session-block {
+  .header-left {
     width: 100%;
+    flex-wrap: wrap;
+    gap: var(--gap-sm);
   }
 
-  .situation-tabs {
-    justify-content: flex-start;
+  .logo-container {
+    gap: 0;
   }
 
-  .message-bubble {
-    max-width: 100%;
+  .logo-svg {
+    width: 32px;
+    height: 32px;
   }
-}
 
-@media (max-width: 480px) {
-  .app-header {
-    padding: var(--gap-base);
+  .logo-text {
+    font-size: var(--font-size-xs);
   }
 
   .app-branding h1 {
@@ -902,15 +1000,326 @@ html, body {
     font-size: var(--font-size-xs);
   }
 
+  .session-block {
+    width: 100%;
+  }
+
+  .camera-frame {
+    min-height: 300px;
+    aspect-ratio: 4 / 3;
+  }
+
+  .detected-letter-display {
+    flex-direction: column;
+    gap: var(--gap-sm);
+    padding: var(--gap-sm);
+  }
+
+  .detected-letter {
+    font-size: 32px;
+    min-width: auto;
+  }
+
+  .confidence-display {
+    align-items: center;
+  }
+
+  .confidence-bar {
+    width: 100px;
+  }
+
+  .text-display {
+    font-size: var(--font-size-sm);
+    min-height: 80px;
+    padding: var(--gap-sm);
+  }
+
+  .panel-header {
+    flex-wrap: wrap;
+    gap: var(--gap-xs);
+  }
+
   .panel-header h2 {
     font-size: var(--font-size-base);
   }
 
+  .status-badge {
+    font-size: var(--font-size-xs);
+  }
+
   .button-group {
     flex-direction: column;
+    gap: var(--gap-xs);
   }
 
   .button-group .btn {
     width: 100%;
+  }
+
+  .instruction-box {
+    font-size: var(--font-size-xs);
+    padding: var(--gap-sm);
+  }
+
+  .alphabet-grid {
+    gap: 4px;
+  }
+
+  .alphabet-letter {
+    width: 24px;
+    height: 24px;
+    font-size: var(--font-size-xs);
+  }
+
+  .hold-progress-container {
+    padding: var(--gap-xs) var(--gap-sm);
+  }
+
+  .hold-progress-letter {
+    font-size: 20px;
+  }
+
+  .hold-progress-bar {
+    width: 60px;
+  }
+
+  .situation-tabs {
+    justify-content: flex-start;
+    gap: var(--gap-xs);
+  }
+
+  .tab {
+    padding: 6px 12px;
+    font-size: var(--font-size-xs);
+  }
+
+  .message-bubble {
+    max-width: 100%;
+    font-size: var(--font-size-xs);
+    padding: var(--gap-sm);
+  }
+
+  .phrase-chip {
+    padding: var(--gap-xs) var(--gap-sm);
+    font-size: var(--font-size-xs);
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: var(--gap-sm) var(--gap-base);
+  }
+
+  .header-left {
+    gap: var(--gap-xs);
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .logo-container {
+    gap: 0;
+  }
+
+  .logo-svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .logo-text {
+    font-size: 10px;
+    letter-spacing: -0.2px;
+  }
+
+  .app-branding {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .app-branding h1 {
+    font-size: var(--font-size-lg);
+    line-height: 1.2;
+  }
+
+  .app-branding p {
+    font-size: var(--font-size-xs);
+    margin-top: 2px;
+  }
+
+  .app-main {
+    padding: var(--gap-sm);
+  }
+
+  .panel {
+    padding: var(--gap-sm);
+  }
+
+  .panel-header {
+    margin-bottom: var(--gap-xs);
+    padding-bottom: var(--gap-xs);
+  }
+
+  .panel-header h2 {
+    font-size: var(--font-size-sm);
+  }
+
+  .camera-frame {
+    min-height: 250px;
+    margin-bottom: var(--gap-xs);
+  }
+
+  .camera-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .detected-letter-display {
+    padding: var(--gap-xs);
+    margin-bottom: var(--gap-xs);
+  }
+
+  .detected-letter {
+    font-size: 28px;
+  }
+
+  .confidence-bar {
+    width: 80px;
+    height: 5px;
+  }
+
+  .text-display {
+    font-size: var(--font-size-xs);
+    min-height: 60px;
+    padding: var(--gap-xs);
+    line-height: 1.4;
+  }
+
+  .button-group {
+    flex-direction: column;
+    gap: var(--gap-xs);
+  }
+
+  .button-group .btn {
+    width: 100%;
+    padding: 8px 16px;
+    font-size: var(--font-size-xs);
+  }
+
+  .session-block {
+    padding: var(--gap-xs) var(--gap-sm);
+    flex-wrap: wrap;
+  }
+
+  .session-status {
+    font-size: var(--font-size-xs);
+  }
+
+  .avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+  }
+
+  .status-badge {
+    font-size: var(--font-size-xs);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+  }
+
+  .instruction-box {
+    padding: var(--gap-xs);
+    font-size: 11px;
+  }
+
+  .instruction-box h4 {
+    font-size: var(--font-size-xs);
+  }
+
+  .alphabet-reference {
+    padding: var(--gap-xs);
+  }
+
+  .alphabet-grid {
+    gap: 3px;
+  }
+
+  .alphabet-letter {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+
+  .hold-progress-container {
+    padding: 6px var(--gap-xs);
+    bottom: var(--gap-xs);
+  }
+
+  .hold-progress-letter {
+    font-size: 18px;
+  }
+
+  .hold-progress-bar {
+    width: 50px;
+    height: 6px;
+  }
+
+  .tab {
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+
+  .phrase-chip {
+    padding: 6px var(--gap-xs);
+    font-size: 11px;
+  }
+
+  .message-bubble {
+    padding: var(--gap-xs);
+    font-size: 11px;
+  }
+
+  .check-note {
+    font-size: 10px;
+  }
+
+  .confidence-label {
+    font-size: 10px;
+  }
+
+  .confidence-value {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .app-header {
+    padding: var(--gap-xs) var(--gap-sm);
+  }
+
+  .app-branding h1 {
+    font-size: var(--font-size-base);
+  }
+
+  .app-branding p {
+    display: none;
+  }
+
+  .logo-svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .logo-text {
+    font-size: 9px;
+  }
+
+  .detected-letter {
+    font-size: 24px;
+  }
+
+  .panel-header h2 {
+    font-size: 11px;
   }
 }
