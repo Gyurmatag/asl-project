@@ -1,6 +1,10 @@
 "use client";
 
-import { SavedMessage } from "./ASLRecognizer";
+export interface SavedMessage {
+  id: string;
+  text: string;
+  timestamp: Date;
+}
 
 interface SavedMessagesProps {
   messages: SavedMessage[];
