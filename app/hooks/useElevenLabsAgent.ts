@@ -90,13 +90,27 @@ export function useElevenLabsAgent(): UseElevenLabsAgentReturn {
         setIsConnecting(false);
         setIsConnected(true);
         
-        // Send the letters as a user message to the agent
-        // Format: space-separated letters for the agent to decode
-        const message = {
-          type: 'user_message',
-          text: `Decode these ASL fingerspelled letters into words and speak them: ${letters}`,
+        // First, send conversation config override for text mode with voice output
+        const configOverride = {
+          type: 'conversation_initiation_client_data',
+          conversation_config_override: {
+            agent: {
+              prompt: {
+                prompt: `You receive ASL fingerspelled letters from a deaf/mute user. Decode them into words and speak naturally. Just say the decoded message, don't explain. Example input: "HELLO" -> say "Hello!"`
+              }
+            }
+          }
         };
-        ws.send(JSON.stringify(message));
+        ws.send(JSON.stringify(configOverride));
+        
+        // Then send the user's text message
+        setTimeout(() => {
+          const message = {
+            type: 'user_message',
+            text: letters,
+          };
+          ws.send(JSON.stringify(message));
+        }, 100);
       };
 
       ws.onmessage = async (event) => {
