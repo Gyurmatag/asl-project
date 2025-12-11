@@ -10,6 +10,9 @@ import {
   LetterClassificationResult,
 } from "../lib/mlClassifier";
 
+// Minimum delay between detections in ms (prevents CPU overload)
+const MIN_DETECTION_DELAY_MS = 30;
+
 // Hand connections for drawing skeleton
 const HAND_CONNECTIONS = [
   [0, 1], [1, 2], [2, 3], [3, 4],       // Thumb
@@ -63,8 +66,8 @@ export function useHandDetection({
   const [bothHandsOpenPalm, setBothHandsOpenPalm] = useState(false);
 
   const detectorRef = useRef<handPoseDetection.HandDetector | null>(null);
-  const smootherRef = useRef<ClassificationSmoother>(new ClassificationSmoother(5));
-  const animationFrameRef = useRef<number | null>(null);
+  const smootherRef = useRef<ClassificationSmoother>(new ClassificationSmoother(3));
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isRunningRef = useRef(false);
 
   // Initialize TensorFlow and load model
@@ -184,6 +187,8 @@ export function useHandDetection({
         return;
       }
 
+      const startTime = performance.now();
+
       try {
         // Estimate hands
         const hands = await detectorRef.current.estimateHands(videoElement, {
@@ -255,9 +260,12 @@ export function useHandDetection({
         console.error("Error during hand detection:", error);
       }
 
-      // Continue detection loop
+      // Schedule next detection with delay to prevent CPU overload
+      // Wait at least MIN_DETECTION_DELAY_MS between detection cycles
       if (isRunningRef.current) {
-        animationFrameRef.current = requestAnimationFrame(detectHands);
+        const elapsed = performance.now() - startTime;
+        const delay = Math.max(0, MIN_DETECTION_DELAY_MS - elapsed);
+        timeoutRef.current = setTimeout(detectHands, delay);
       }
     }
 
@@ -267,9 +275,9 @@ export function useHandDetection({
 
     return () => {
       isRunningRef.current = false;
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
       // Clear canvas when stopping
       ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
