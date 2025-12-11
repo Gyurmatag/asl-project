@@ -28,7 +28,6 @@ export default function ASLRecognizer() {
   // ElevenLabs Agent integration
   const { isConnecting, isConnected, isSpeaking, error: agentError, sendToAgent } = useElevenLabsAgent();
 
-  // Track letter stability for adding to text
   const lastLetterRef = useRef<string | null>(null);
   const letterStartTimeRef = useRef<number>(0);
   const letterAddedRef = useRef(false);
@@ -42,8 +41,13 @@ export default function ASLRecognizer() {
   const [bothHandsOpen, setBothHandsOpen] = useState(false);
   const [isSendingToAgent, setIsSendingToAgent] = useState(false);
 
+<<<<<<< Updated upstream
   const HOLD_DURATION = 800; // Hold letter for 0.8 seconds to add it
   const DONE_HOLD_DURATION = 1500; // Hold both palms for 1.5 seconds to trigger done
+=======
+  const HOLD_DURATION = 800;
+  const DONE_HOLD_DURATION = 1200;
+>>>>>>> Stashed changes
 
   // Track if we're in the process of saving to prevent duplicates
   const isSavingRef = useRef(false);
@@ -103,11 +107,23 @@ export default function ASLRecognizer() {
         const elapsed = Date.now() - doneGestureStartRef.current;
         setDoneProgress(Math.min(100, (elapsed / DONE_HOLD_DURATION) * 100));
         
+<<<<<<< Updated upstream
         if (elapsed >= DONE_HOLD_DURATION && recognizedText.trim().length > 0) {
           // Both palms held long enough, save message and send to agent
           doneTriggeredRef.current = true;
           setDoneProgress(0);
           handleSaveMessage();
+=======
+        if (elapsed >= DONE_HOLD_DURATION && recognizedText.trim()) {
+          letterAddedRef.current = true;
+          setDoneTriggered(true);
+          setHoldProgress(0);
+          
+          sendToAgent(recognizedText).then(() => {
+            setRecognizedText("");
+            setTimeout(() => setDoneTriggered(false), 2000);
+          });
+>>>>>>> Stashed changes
         }
       }
     } else {
@@ -144,12 +160,10 @@ export default function ASLRecognizer() {
       setHoldProgress(Math.min(100, (elapsed / HOLD_DURATION) * 100));
       
       if (elapsed >= HOLD_DURATION) {
-        // Letter held long enough, add it
         setRecognizedText((prev) => prev + letter);
         letterAddedRef.current = true;
         setHoldProgress(0);
 
-        // Show visual feedback
         setJustAddedLetter(letter);
         setTimeout(() => setJustAddedLetter(null), 1000);
       }
@@ -171,7 +185,6 @@ export default function ASLRecognizer() {
     onBothHandsOpenPalm: handleBothHandsOpenPalm,
   });
 
-  // Reset when no hand detected
   useEffect(() => {
     if (!currentDetection || currentDetection.hands.length === 0) {
       setCurrentLetter(null);
@@ -195,114 +208,71 @@ export default function ASLRecognizer() {
   }, []);
 
   const handleCameraError = useCallback((error: string) => {
-    console.error("Camera error:", error);
+    console.error("ASLRecognizer - Kamera hiba:", error);
   }, []);
 
+  const getStatusText = () => {
+    if (modelError) return "Hiba";
+    if (isModelLoading) return "AI modell betöltése...";
+    if (!isCameraReady) return "kamera indítása...";
+    if (isSpeaking) return "Agent beszél...";
+    if (isConnecting) return "Agent csatlakozás...";
+    if (handDetected) return `${handsCount} kéz felismerve`;
+    return "felismerés aktív";
+  };
+
+  const getStatusDotClass = () => {
+    if (modelError) return "status-dot--error";
+    if (isModelLoading || !isCameraReady || isConnecting) return "status-dot--loading";
+    if (isSpeaking) return "status-dot--speaking";
+    if (handDetected) return "status-dot--listening";
+    return "status-dot--idle";
+  };
+
   return (
-    <>
-      {/* Status Bar */}
-      <div className="w-full max-w-[640px] flex items-center gap-4 p-3 bg-zinc-900 rounded-lg flex-wrap">
-        <div className="flex items-center gap-2">
-          <div
-            className={`w-3 h-3 rounded-full ${
-              isCameraReady ? "bg-green-500" : "bg-yellow-500 animate-pulse"
-            }`}
-          />
-          <span className="text-sm text-zinc-400">
-            {isCameraReady ? "Camera ready" : "Starting camera..."}
-          </span>
+    <div className="panel-grid">
+      {/* BAL PANEL: KAMERA */}
+      <div className="panel">
+        <div className="panel-header">
+          <h2>Kamera előnézet</h2>
+          <div className="status-badge">
+            <span className={`status-dot ${getStatusDotClass()}`}></span>
+            <span>{getStatusText()}</span>
+          </div>
         </div>
-        <div className="w-px h-4 bg-zinc-700" />
-        <div className="flex items-center gap-2">
-          <div
-            className={`w-3 h-3 rounded-full ${
-              modelError
-                ? "bg-red-500"
-                : isModelLoading
-                ? "bg-yellow-500 animate-pulse"
-                : "bg-green-500"
-            }`}
-          />
-          <span className="text-sm text-zinc-400">
-            {modelError
-              ? "Model error"
-              : isModelLoading
-              ? "Loading AI model..."
-              : "AI model ready"}
-          </span>
-        </div>
-        {handDetected && (
-          <>
-            <div className="w-px h-4 bg-zinc-700" />
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-blue-500" />
-              <span className="text-sm text-zinc-400">
-                {handsCount === 1 ? "1 hand" : `${handsCount} hands`} detected
-              </span>
-            </div>
-          </>
-        )}
-        {/* Agent Status */}
-        {(isConnecting || isConnected || isSpeaking) && (
-          <>
-            <div className="w-px h-4 bg-zinc-700" />
-            <div className="flex items-center gap-1.5">
-              <div className={`w-3 h-3 rounded-full ${
-                isSpeaking ? "bg-purple-500 animate-pulse" : 
-                isConnected ? "bg-purple-500" : 
-                "bg-yellow-500 animate-pulse"
-              }`} />
-              <span className="text-sm text-zinc-400">
-                {isSpeaking ? "Speaking..." : isConnected ? "Agent connected" : "Connecting to agent..."}
-              </span>
-            </div>
-          </>
-        )}
-      </div>
 
-      {/* Model Error */}
-      {modelError && (
-        <div className="w-full max-w-[640px] p-4 bg-red-900/20 border border-red-800 rounded-lg">
-          <p className="text-red-400 text-sm">
-            <strong>Error loading model:</strong> {modelError}
-          </p>
-          <p className="text-red-400/70 text-xs mt-2">
-            Try refreshing the page.
-          </p>
-        </div>
-      )}
-
-      {/* Agent Error */}
-      {agentError && (
-        <div className="w-full max-w-[640px] p-4 bg-red-900/20 border border-red-800 rounded-lg">
-          <p className="text-red-400 text-sm">
-            <strong>Agent error:</strong> {agentError}
-          </p>
-        </div>
-      )}
-
-      {/* Camera View */}
-      <div className="relative">
-        <Camera
-          ref={cameraRef}
-          width={640}
-          height={480}
-          onCameraReady={handleCameraReady}
-          onCameraError={handleCameraError}
-        />
-
-        {/* Loading Overlay */}
-        {isCameraReady && isModelLoading && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-white text-sm">
-                Loading hand detection model...
-              </span>
-            </div>
+        {modelError && (
+          <div className="error-box">
+            <p><strong>Hiba:</strong> {modelError}</p>
+            <p className="error-box-hint">Próbáld újratölteni az oldalt.</p>
           </div>
         )}
 
+        {agentError && (
+          <div className="error-box">
+            <p><strong>Agent hiba:</strong> {agentError}</p>
+          </div>
+        )}
+
+        <div style={{ position: "relative" }}>
+          <Camera
+            ref={cameraRef}
+            width={640}
+            height={480}
+            onCameraReady={handleCameraReady}
+            onCameraError={handleCameraError}
+          />
+
+          {isCameraReady && isModelLoading && (
+            <div className="loading-overlay">
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <div className="loading-spinner"></div>
+                <p className="loading-text">Kézfelismerő modell betöltése...</p>
+              </div>
+            </div>
+          )}
+
+<<<<<<< Updated upstream
         {/* Sending to Agent Overlay */}
         {isSendingToAgent && (
           <div className="absolute inset-0 bg-black/70 flex items-center justify-center rounded-lg">
@@ -311,10 +281,19 @@ export default function ASLRecognizer() {
               <span className="text-white text-lg font-medium">
                 Sending to AI Agent...
               </span>
+=======
+          {/* DONE Gesture - Sending to Agent */}
+          {doneTriggered && (
+            <div className="loading-overlay">
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <div className="loading-spinner" style={{ borderTopColor: "#A855F7" }}></div>
+                <p className="loading-text">Küldés az AI Agent-nek...</p>
+              </div>
+>>>>>>> Stashed changes
             </div>
-          </div>
-        )}
+          )}
 
+<<<<<<< Updated upstream
         {/* Message Saved Confirmation */}
         {justSaved && !isSendingToAgent && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-green-600/95 px-6 py-3 rounded-lg shadow-lg z-10">
@@ -383,16 +362,95 @@ export default function ASLRecognizer() {
                   {currentLetter.letter}
                 </span>
                 <div className="w-20 h-2 bg-zinc-700 rounded-full overflow-hidden">
+=======
+          {/* Letter Added Confirmation */}
+          {justAddedLetter && !doneTriggered && (
+            <div className="letter-added-toast">
+              <span>✓</span>
+              <span>{justAddedLetter}</span>
+            </div>
+          )}
+
+          {/* Hold Progress - DONE gesture */}
+          {currentLetter &&
+            currentLetter.letter === "DONE" &&
+            lastLetterRef.current === "DONE" &&
+            !letterAddedRef.current &&
+            !doneTriggered && (
+              <div className="hold-progress-container" style={{ background: "rgba(126, 34, 206, 0.9)" }}>
+                <span style={{ fontSize: "20px" }}>👍</span>
+                <span className="hold-progress-letter" style={{ fontSize: "14px" }}>KÜLDÉS</span>
+                <div className="hold-progress-bar">
                   <div
-                    className="h-full bg-green-500 transition-all duration-100"
+                    className="hold-progress-fill"
+                    style={{ width: `${holdProgress}%`, background: "#A855F7" }}
+                  />
+                </div>
+              </div>
+            )}
+
+          {/* Hold Progress - Regular letters */}
+          {currentLetter &&
+            currentLetter.letter &&
+            currentLetter.letter !== "DONE" &&
+            lastLetterRef.current === currentLetter.letter &&
+            !letterAddedRef.current &&
+            !justAddedLetter && (
+              <div className="hold-progress-container">
+                <span className="hold-progress-letter">{currentLetter.letter}</span>
+                <div className="hold-progress-bar">
+>>>>>>> Stashed changes
+                  <div
+                    className="hold-progress-fill"
                     style={{ width: `${holdProgress}%` }}
                   />
                 </div>
               </div>
-            </div>
-          )}
+            )}
+        </div>
+
+        <div className="instruction-box">
+          <h4>Tanácsok</h4>
+          <ul>
+            <li>Jelelj természetes tempóban</li>
+            <li>A kezed legyen teljesen látható</li>
+            <li>👍 Tartsd a hüvelykujjat 1.2mp-ig a küldéshez</li>
+          </ul>
+        </div>
+
+        <div className="button-group">
+          <button className="btn btn-secondary btn-small" title="Felismerés szüneteltetése">
+            Szüneteltetés
+          </button>
+          <button className="btn btn-secondary btn-small" title="Kamerakép tükrözése">
+            Tükrözés
+          </button>
+        </div>
       </div>
 
+      {/* KÖZÉP PANEL: FELISMERT SZÖVEG */}
+      <div className="panel">
+        <div className="panel-header">
+          <h2>Amit a rendszer hall tőled</h2>
+        </div>
+
+        <div className="status-bar">
+          <span className="status-indicator"></span>
+          <span>
+            {isSpeaking ? "Agent beszél..." : isConnected ? "Agent csatlakozva" : "Valós idejű felismerés…"}
+          </span>
+        </div>
+
+        <RecognizedText
+          text={recognizedText}
+          currentLetter={currentLetter}
+          onClear={handleClear}
+          onBackspace={handleBackspace}
+          onAddSpace={handleAddSpace}
+        />
+      </div>
+
+<<<<<<< Updated upstream
       {/* Recognition Results */}
       <RecognizedText
         text={recognizedText}
@@ -416,7 +474,82 @@ export default function ASLRecognizer() {
         <p className="text-purple-300 text-sm">
           <strong>🙌 Both Hands Open = SEND</strong> — Hold both palms facing camera for 1.5 seconds to save your message and send it to the AI agent who will decode and speak it!
         </p>
+=======
+      {/* JOBB PANEL: SZITUÁCIÓK */}
+      <div className="panel">
+        <div className="panel-header">
+          <h2>Szituációk & beszélgetés</h2>
+        </div>
+
+        <div className="situation-tabs">
+          <button className="tab tab--active">Állásinterjú</button>
+          <button className="tab">Első munkanap</button>
+          <button className="tab">Napi standup</button>
+          <button className="tab">Gyors kérdés</button>
+        </div>
+
+        <div className="situation-description">
+          Segítség az önbemutatkozáshoz és a gyakori interjúkérdésekhez. Válassz egy előre elkészített mondatot, vagy írj sajátat!
+        </div>
+
+        <div className="quick-phrases">
+          <button className="phrase-chip">
+            „Kérem, ismételje meg a kérdést."
+          </button>
+          <button className="phrase-chip">
+            „Néhány másodpercre szükségem van gondolni erre."
+          </button>
+          <button className="phrase-chip">
+            „Meg tudná mutatni, hol találom ezt a rendszerben?"
+          </button>
+          <button className="phrase-chip">
+            „Nagyon örülök, hogy a csapat részese lehetek."
+          </button>
+        </div>
+
+        <div className="conversation">
+          <div className="message message--partner">
+            <div className="message-bubble">
+              Szia! Valóban csodálatos, hogy itt vagy az interjún. Szeretnéd elmondani magadról egy kicsit?
+            </div>
+            <div className="message-meta">
+              <span>Interjúztató</span>
+              <span>10:24</span>
+            </div>
+          </div>
+
+          <div className="message message--user">
+            <div className="message-bubble">
+              Köszönöm! Nagyon örülök, hogy meghívtak. Az elmúlt öt évben UX-vel foglalkoztam, és szerettem volna új kihívásokat keresni.
+            </div>
+            <div className="message-meta">
+              <span>Te</span>
+              <span>10:25</span>
+            </div>
+          </div>
+
+          <div className="message message--partner">
+            <div className="message-bubble">
+              Kitűnő! Milyen projekteken dolgoztál a legtöbb időt?
+            </div>
+            <div className="message-meta">
+              <span>Interjúztató</span>
+              <span>10:26</span>
+            </div>
+          </div>
+
+          <div className="message message--user">
+            <div className="message-bubble">
+              Főleg e-commerce és szociális média alkalmazásokon. A felhasználói visszajelzés volt a fontosabb nekem, mint a saját ötleteim.
+            </div>
+            <div className="message-meta">
+              <span>Te</span>
+              <span>10:27</span>
+            </div>
+          </div>
+        </div>
+>>>>>>> Stashed changes
       </div>
-    </>
+    </div>
   );
 }

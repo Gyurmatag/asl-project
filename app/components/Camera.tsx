@@ -29,7 +29,6 @@ const Camera = forwardRef<CameraRef, CameraProps>(function Camera(
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Expose video and canvas elements to parent
   useImperativeHandle(
     ref,
     () => ({
@@ -48,12 +47,11 @@ const Camera = forwardRef<CameraRef, CameraProps>(function Camera(
 
     async function setupCamera() {
       try {
-        // Request camera access
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             width: { ideal: width },
             height: { ideal: height },
-            facingMode: "user", // Front-facing camera
+            facingMode: "user",
           },
           audio: false,
         });
@@ -61,7 +59,6 @@ const Camera = forwardRef<CameraRef, CameraProps>(function Camera(
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           
-          // Wait for video to be ready
           await new Promise<void>((resolve) => {
             if (videoRef.current) {
               videoRef.current.onloadedmetadata = () => {
@@ -76,7 +73,7 @@ const Camera = forwardRef<CameraRef, CameraProps>(function Camera(
         }
       } catch (err) {
         const errorMessage =
-          err instanceof Error ? err.message : "Failed to access camera";
+          err instanceof Error ? err.message : "Nem sikerült elérni a kamerát";
         setError(errorMessage);
         setIsLoading(false);
         onCameraError?.(errorMessage);
@@ -85,7 +82,6 @@ const Camera = forwardRef<CameraRef, CameraProps>(function Camera(
 
     setupCamera();
 
-    // Cleanup
     return () => {
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
@@ -94,8 +90,9 @@ const Camera = forwardRef<CameraRef, CameraProps>(function Camera(
   }, [width, height, onCameraReady, onCameraError]);
 
   return (
-    <div className="relative rounded-lg overflow-hidden bg-zinc-900">
-      {/* Video element - mirrored for natural selfie view */}
+    <div className="camera-frame camera-frame--active" style={{ aspectRatio: `${width}/${height}` }}>
+      <div className="camera-grid"></div>
+      
       <video
         ref={videoRef}
         width={width}
@@ -103,43 +100,62 @@ const Camera = forwardRef<CameraRef, CameraProps>(function Camera(
         autoPlay
         playsInline
         muted
-        className="block"
-        style={{ transform: "scaleX(-1)" }} // Mirror the video
+        style={{
+          display: isLoading || error ? "none" : "block",
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          transform: "scaleX(-1)",
+          borderRadius: "var(--radius-md)",
+        }}
       />
       
-      {/* Canvas overlay for drawing hand landmarks */}
       <canvas
         ref={canvasRef}
         width={width}
         height={height}
-        className="absolute top-0 left-0 pointer-events-none"
-        style={{ transform: "scaleX(-1)" }} // Mirror to match video
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          pointerEvents: "none",
+          transform: "scaleX(-1)",
+        }}
       />
 
-      {/* Loading overlay */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-10 h-10 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            <span className="text-zinc-400 text-sm">Starting camera...</span>
+        <div className="camera-placeholder">
+          <div className="camera-icon">
+            <svg viewBox="0 0 80 60" preserveAspectRatio="xMidYMid meet">
+              <rect x="10" y="15" width="60" height="40" rx="3" />
+              <circle cx="40" cy="35" r="12" />
+              <circle cx="60" cy="20" r="4" />
+            </svg>
           </div>
+          <p>Kamera indítása...</p>
         </div>
       )}
 
-      {/* Error overlay */}
       {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
-          <div className="flex flex-col items-center gap-3 p-6 text-center">
-            <div className="w-12 h-12 rounded-full bg-red-900/50 flex items-center justify-center">
-              <span className="text-red-400 text-2xl">!</span>
-            </div>
-            <p className="text-red-400 font-medium">Camera Error</p>
-            <p className="text-zinc-500 text-sm max-w-xs">{error}</p>
-            <p className="text-zinc-600 text-xs mt-2">
-              Please ensure camera permissions are granted
-            </p>
+        <div className="camera-placeholder">
+          <div className="camera-icon" style={{ opacity: 0.5 }}>
+            <svg viewBox="0 0 80 60" preserveAspectRatio="xMidYMid meet">
+              <rect x="10" y="15" width="60" height="40" rx="3" />
+              <circle cx="40" cy="35" r="12" />
+              <circle cx="60" cy="20" r="4" />
+            </svg>
           </div>
+          <p style={{ color: "#EF4444" }}>Kamera hiba</p>
+          <p style={{ fontSize: "12px", marginTop: "8px", maxWidth: "200px", textAlign: "center" }}>
+            {error}
+          </p>
         </div>
+      )}
+
+      {!isLoading && !error && (
+        <p className="camera-hint">Tartsd a kezed a kép közepén</p>
       )}
     </div>
   );
