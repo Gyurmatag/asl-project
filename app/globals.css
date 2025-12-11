@@ -8,20 +8,20 @@
    ============================================ */
 
 :root {
-  /* Refined Color Palette */
-  --color-primary: #3B82F6;
-  --color-primary-light: #60A5FA;
-  --color-accent: #6366F1;
-  --color-accent-warm: #8B5CF6;
+  /* Dark Gray Color Palette */
+  --color-primary: #1F2937;
+  --color-primary-light: #374151;
+  --color-accent: #4B5563;
+  --color-accent-warm: #6B7280;
   --color-background: #FFFFFF;
-  --color-surface: #F8FAFC;
-  --color-text: #1E293B;
-  --color-text-light: #64748B;
-  --color-border: #E2E8F0;
-  --color-success: #22C55E;
-  --color-idle: #94A3B8;
-  --color-listening: #3B82F6;
-  --color-speaking: #22C55E;
+  --color-surface: #F9FAFB;
+  --color-text: #111827;
+  --color-text-light: #6B7280;
+  --color-border: #E5E7EB;
+  --color-success: #10B981;
+  --color-idle: #9CA3AF;
+  --color-listening: #374151;
+  --color-speaking: #10B981;
 
   /* Typography */
   --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -127,7 +127,7 @@ html, body {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  background: var(--color-primary);
   color: white;
   display: flex;
   align-items: center;
@@ -367,7 +367,7 @@ html, body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  background: var(--color-primary);
   color: white;
 }
 
@@ -472,7 +472,7 @@ html, body {
   justify-content: center;
   gap: var(--gap-base);
   padding: var(--gap-sm);
-  background: linear-gradient(135deg, var(--color-surface) 0%, #EEF2FF 100%);
+  background: var(--color-surface);
   border-radius: var(--radius-md);
   margin-bottom: var(--gap-xs);
   border: 1px solid var(--color-border);
@@ -755,7 +755,7 @@ html, body {
 }
 
 .message--user .message-bubble {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  background: var(--color-primary);
   color: white;
   border-bottom-right-radius: 2px;
 }
