@@ -1,0 +1,17 @@
+version: "3.0"
+maintainer: "roka@shiwaforce.com"
+
+before_script:
+  - cd docker/scripts && chmod +x *
+  - mkdir -p docker/mnt/frontend/node_modules
+
+environment:
+  include: docker/conf/default/conf.env
+
+plan:
+  default:
+    description: "local fejlesztést könnyítő dolgokat tartalmaz"
+    docker-compose-file:
+      - docker/dc-frontend.yml
+      - docker/dc-proxy.yml
+

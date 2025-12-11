@@ -1,0 +1,18 @@
+services:
+  proxy:
+    image: nginx:latest
+    container_name: asl-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - ${PROJECT_HOME}/docker/conf/default/nginx.conf:/etc/nginx/conf.d/default.conf
+    links:
+      - frontend
+    depends_on:
+      - frontend
+    stop_signal: SIGKILL
+    logging:
+      options:
+        max-size: "10k"
+        max-file: "3"
+

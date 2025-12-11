@@ -1,0 +1,25 @@
+services:
+  frontend:
+    image: node:22
+    container_name: asl-frontend
+    working_dir: /usr/local/app/frontend
+    command: /usr/local/app/docker/scripts/start-frontend.sh
+    volumes:
+      - ${PROJECT_HOME}/docker:/usr/local/app/docker
+      - ${PROJECT_HOME}/app:/usr/local/app/frontend/app
+      - ${PROJECT_HOME}/lib:/usr/local/app/frontend/lib
+      - ${PROJECT_HOME}/public:/usr/local/app/frontend/public
+      - ${PROJECT_HOME}/package.json:/usr/local/app/frontend/package.json
+      - ${PROJECT_HOME}/package-lock.json:/usr/local/app/frontend/package-lock.json
+      - ${PROJECT_HOME}/tsconfig.json:/usr/local/app/frontend/tsconfig.json
+      - ${PROJECT_HOME}/next.config.ts:/usr/local/app/frontend/next.config.ts
+      - ${PROJECT_HOME}/postcss.config.mjs:/usr/local/app/frontend/postcss.config.mjs
+      - ${PROJECT_HOME}/eslint.config.mjs:/usr/local/app/frontend/eslint.config.mjs
+      - ${PROJECT_HOME}/components.json:/usr/local/app/frontend/components.json
+      - ${PROJECT_HOME}/docker/mnt/frontend/node_modules:/usr/local/app/frontend/node_modules
+    stop_signal: SIGKILL
+    logging:
+      options:
+        max-size: "10k"
+        max-file: "3"
+
