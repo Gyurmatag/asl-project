@@ -27,35 +27,53 @@ export default function ASLRecognizer() {
   const [holdProgress, setHoldProgress] = useState(0);
   const [doneTriggered, setDoneTriggered] = useState(false);
 
+  // Both hands open palm detection for sending
+  const bothHandsStartTimeRef = useRef<number>(0);
+  const bothHandsTriggeredRef = useRef(false);
+  const [bothHandsHoldProgress, setBothHandsHoldProgress] = useState(0);
+
   const HOLD_DURATION = 800;
-  const DONE_HOLD_DURATION = 1200;
+  const BOTH_HANDS_HOLD_DURATION = 1200;
+
+  // Handle both hands open palm gesture for saving and sending
+  const handleBothHandsOpenPalm = useCallback((detected: boolean) => {
+    if (detected && !doneTriggered && recognizedText.trim()) {
+      if (bothHandsStartTimeRef.current === 0) {
+        // Just started detecting both hands
+        bothHandsStartTimeRef.current = Date.now();
+        bothHandsTriggeredRef.current = false;
+      } else if (!bothHandsTriggeredRef.current) {
+        const elapsed = Date.now() - bothHandsStartTimeRef.current;
+        setBothHandsHoldProgress(Math.min(100, (elapsed / BOTH_HANDS_HOLD_DURATION) * 100));
+        
+        if (elapsed >= BOTH_HANDS_HOLD_DURATION) {
+          bothHandsTriggeredRef.current = true;
+          setBothHandsHoldProgress(0);
+          setDoneTriggered(true);
+          
+          // Save and send to agent
+          sendToAgent(recognizedText).then(() => {
+            setRecognizedText("");
+            setTimeout(() => {
+              setDoneTriggered(false);
+              bothHandsTriggeredRef.current = false;
+            }, 2000);
+          });
+        }
+      }
+    } else {
+      // Reset both hands detection
+      bothHandsStartTimeRef.current = 0;
+      setBothHandsHoldProgress(0);
+    }
+  }, [recognizedText, sendToAgent, doneTriggered]);
 
   const handleLetterDetected = useCallback((result: LetterClassificationResult) => {
     setCurrentLetter(result);
     const letter = result.letter;
 
-    // Check for DONE gesture (thumbs up)
-    if (letter === "DONE") {
-      if (lastLetterRef.current !== "DONE") {
-        lastLetterRef.current = "DONE";
-        letterStartTimeRef.current = Date.now();
-        letterAddedRef.current = false;
-        setHoldProgress(0);
-      } else if (!letterAddedRef.current && !doneTriggered) {
-        const elapsed = Date.now() - letterStartTimeRef.current;
-        setHoldProgress(Math.min(100, (elapsed / DONE_HOLD_DURATION) * 100));
-        
-        if (elapsed >= DONE_HOLD_DURATION && recognizedText.trim()) {
-          letterAddedRef.current = true;
-          setDoneTriggered(true);
-          setHoldProgress(0);
-          
-          sendToAgent(recognizedText).then(() => {
-            setRecognizedText("");
-            setTimeout(() => setDoneTriggered(false), 2000);
-          });
-        }
-      }
+    // Skip letter detection if it's an OPEN_PALM special gesture (handled by both hands)
+    if (result.specialGesture === "OPEN_PALM") {
       return;
     }
 
@@ -81,7 +99,7 @@ export default function ASLRecognizer() {
         setTimeout(() => setJustAddedLetter(null), 1000);
       }
     }
-  }, [recognizedText, sendToAgent, doneTriggered]);
+  }, []);
 
   const {
     isModelLoading,
@@ -89,11 +107,13 @@ export default function ASLRecognizer() {
     currentDetection,
     handDetected,
     handsCount,
+    bothHandsOpenPalm,
   } = useHandDetection({
     videoElement: cameraRef.current?.videoElement ?? null,
     canvasElement: cameraRef.current?.canvasElement ?? null,
     isEnabled: isCameraReady && !isPaused,
     onLetterDetected: handleLetterDetected,
+    onBothHandsOpenPalm: handleBothHandsOpenPalm,
   });
 
   useEffect(() => {
@@ -110,6 +130,9 @@ export default function ASLRecognizer() {
       setCurrentLetter(null);
       lastLetterRef.current = null;
       setHoldProgress(0);
+      // Reset both hands detection
+      bothHandsStartTimeRef.current = 0;
+      setBothHandsHoldProgress(0);
     }
   }, [isPaused]);
 
@@ -140,6 +163,7 @@ export default function ASLRecognizer() {
     if (isPaused) return "paused";
     if (isSpeaking) return "Agent speaking...";
     if (isConnecting) return "Connecting to agent...";
+    if (bothHandsOpenPalm) return "🙌 Both hands detected - hold to send";
     if (handDetected) return `${handsCount} hand${handsCount > 1 ? "s" : ""} detected`;
     return "recognition active";
   };
@@ -225,20 +249,18 @@ export default function ASLRecognizer() {
             </div>
           )}
 
-          {/* Hold Progress - DONE gesture */}
+          {/* Hold Progress - Both Hands Open Palm for sending */}
           {!isPaused &&
-            currentLetter &&
-            currentLetter.letter === "DONE" &&
-            lastLetterRef.current === "DONE" &&
-            !letterAddedRef.current &&
+            bothHandsOpenPalm &&
+            bothHandsHoldProgress > 0 &&
             !doneTriggered && (
               <div className="hold-progress-container">
-                <span style={{ fontSize: "20px" }}>👍</span>
+                <span style={{ fontSize: "20px" }}>🙌</span>
                 <span className="hold-progress-letter" style={{ fontSize: "14px" }}>SEND</span>
                 <div className="hold-progress-bar">
                   <div
                     className="hold-progress-fill"
-                    style={{ width: `${holdProgress}%` }}
+                    style={{ width: `${bothHandsHoldProgress}%` }}
                   />
                 </div>
               </div>
@@ -246,9 +268,9 @@ export default function ASLRecognizer() {
 
           {/* Hold Progress - Regular letters */}
           {!isPaused &&
+            !bothHandsOpenPalm &&
             currentLetter &&
             currentLetter.letter &&
-            currentLetter.letter !== "DONE" &&
             lastLetterRef.current === currentLetter.letter &&
             !letterAddedRef.current &&
             !justAddedLetter && (
@@ -269,7 +291,7 @@ export default function ASLRecognizer() {
           <ul>
             <li>Sign at a natural pace</li>
             <li>Keep your hand fully visible</li>
-            <li>👍 Hold thumbs up for 1.2s to send</li>
+            <li>🙌 Hold both hands up (open palms) for 1.2s to send</li>
           </ul>
         </div>
 
