@@ -36,6 +36,7 @@ interface UseHandDetectionProps {
   canvasElement: HTMLCanvasElement | null;
   isEnabled: boolean;
   onLetterDetected?: (result: LetterClassificationResult) => void;
+  onBothHandsOpenPalm?: (detected: boolean) => void;
 }
 
 interface UseHandDetectionReturn {
@@ -44,6 +45,7 @@ interface UseHandDetectionReturn {
   currentDetection: HandDetectionResult | null;
   handDetected: boolean;
   handsCount: number;
+  bothHandsOpenPalm: boolean;
 }
 
 export function useHandDetection({
@@ -51,12 +53,14 @@ export function useHandDetection({
   canvasElement,
   isEnabled,
   onLetterDetected,
+  onBothHandsOpenPalm,
 }: UseHandDetectionProps): UseHandDetectionReturn {
   const [isModelLoading, setIsModelLoading] = useState(true);
   const [modelError, setModelError] = useState<string | null>(null);
   const [currentDetection, setCurrentDetection] = useState<HandDetectionResult | null>(null);
   const [handDetected, setHandDetected] = useState(false);
   const [handsCount, setHandsCount] = useState(0);
+  const [bothHandsOpenPalm, setBothHandsOpenPalm] = useState(false);
 
   const detectorRef = useRef<handPoseDetection.HandDetector | null>(null);
   const smootherRef = useRef<ClassificationSmoother>(new ClassificationSmoother(5));
@@ -203,22 +207,47 @@ export function useHandDetection({
             drawHand(hand, ctx);
           }
 
-          // Use the first hand for classification (or right hand if available)
-          const rightHand = hands.find(h => h.handedness === "Right");
-          const handForClassification = rightHand || hands[0];
+          // Check if both hands are showing open palms (for "done" gesture)
+          let bothPalmsOpen = false;
+          if (hands.length >= 2) {
+            const handResults = hands.map(hand => 
+              classifyLetter(hand.keypoints, videoWidth, videoHeight)
+            );
+            
+            // Check if both hands show OPEN_PALM gesture
+            const openPalmCount = handResults.filter(
+              r => r.specialGesture === "OPEN_PALM"
+            ).length;
+            
+            bothPalmsOpen = openPalmCount >= 2;
+          }
+          
+          setBothHandsOpenPalm(bothPalmsOpen);
+          onBothHandsOpenPalm?.(bothPalmsOpen);
+          
+          // If both palms are open, don't process for letter detection
+          if (bothPalmsOpen) {
+            onLetterDetected?.({ letter: null, confidence: 0, allMatches: [], specialGesture: "OPEN_PALM" });
+          } else {
+            // Use the first hand for classification (or right hand if available)
+            const rightHand = hands.find(h => h.handedness === "Right");
+            const handForClassification = rightHand || hands[0];
 
-          // Classify the gesture
-          const rawResult = classifyLetter(
-            handForClassification.keypoints,
-            videoWidth,
-            videoHeight
-          );
+            // Classify the gesture
+            const rawResult = classifyLetter(
+              handForClassification.keypoints,
+              videoWidth,
+              videoHeight
+            );
 
-          // Smooth the result
-          const smoothedResult = smootherRef.current.addResult(rawResult);
-          onLetterDetected?.(smoothedResult);
+            // Smooth the result
+            const smoothedResult = smootherRef.current.addResult(rawResult);
+            onLetterDetected?.(smoothedResult);
+          }
         } else {
           // No hand detected, reset smoother
+          setBothHandsOpenPalm(false);
+          onBothHandsOpenPalm?.(false);
           smootherRef.current.reset();
           onLetterDetected?.({ letter: null, confidence: 0, allMatches: [] });
         }
@@ -253,6 +282,7 @@ export function useHandDetection({
     modelError,
     drawHand,
     onLetterDetected,
+    onBothHandsOpenPalm,
   ]);
 
   return {
@@ -261,5 +291,6 @@ export function useHandDetection({
     currentDetection,
     handDetected,
     handsCount,
+    bothHandsOpenPalm,
   };
 }

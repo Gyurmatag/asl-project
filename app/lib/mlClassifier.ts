@@ -1,10 +1,11 @@
-import { gestureEstimator, SupportedLetter } from "./aslGestures";
+import { gestureEstimator, SupportedLetter, SpecialGesture, SUPPORTED_LETTERS } from "./aslGestures";
 import type { Keypoint } from "@tensorflow-models/hand-pose-detection";
 
 export interface LetterClassificationResult {
   letter: SupportedLetter | null;
   confidence: number;
   allMatches: Array<{ name: string; score: number }>;
+  specialGesture?: SpecialGesture | null;
 }
 
 // Fingerpose expects landmarks in a specific 3D array format
@@ -30,9 +31,19 @@ export function convertToFingerposeFormat(
   });
 }
 
+// Check if a gesture name is a supported letter
+function isLetter(name: string): name is SupportedLetter {
+  return SUPPORTED_LETTERS.includes(name as SupportedLetter);
+}
+
+// Check if a gesture name is a special gesture
+function isSpecialGesture(name: string): name is SpecialGesture {
+  return name === "OPEN_PALM";
+}
+
 /**
- * Classify hand landmarks into an ASL letter
- * Returns the best matching letter and confidence score
+ * Classify hand landmarks into an ASL letter or special gesture
+ * Returns the best matching letter/gesture and confidence score
  */
 export function classifyLetter(
   keypoints: Keypoint[],
@@ -41,7 +52,7 @@ export function classifyLetter(
   minConfidence: number = 7.0 // Fingerpose returns scores 0-10
 ): LetterClassificationResult {
   if (keypoints.length !== 21) {
-    return { letter: null, confidence: 0, allMatches: [] };
+    return { letter: null, confidence: 0, allMatches: [], specialGesture: null };
   }
 
   try {
@@ -56,20 +67,37 @@ export function classifyLetter(
       const sortedGestures = [...result.gestures].sort((a, b) => b.score - a.score);
       const bestMatch = sortedGestures[0];
       
-      return {
-        letter: bestMatch.name as SupportedLetter,
-        confidence: bestMatch.score / 10, // Normalize to 0-1
-        allMatches: sortedGestures.map((g) => ({
-          name: g.name,
-          score: g.score / 10,
-        })),
-      };
+      // Check if best match is a special gesture
+      if (isSpecialGesture(bestMatch.name)) {
+        return {
+          letter: null,
+          confidence: bestMatch.score / 10,
+          allMatches: sortedGestures.map((g) => ({
+            name: g.name,
+            score: g.score / 10,
+          })),
+          specialGesture: bestMatch.name as SpecialGesture,
+        };
+      }
+      
+      // Otherwise it's a letter
+      if (isLetter(bestMatch.name)) {
+        return {
+          letter: bestMatch.name,
+          confidence: bestMatch.score / 10,
+          allMatches: sortedGestures.map((g) => ({
+            name: g.name,
+            score: g.score / 10,
+          })),
+          specialGesture: null,
+        };
+      }
     }
   } catch (error) {
     console.error("Error classifying gesture:", error);
   }
 
-  return { letter: null, confidence: 0, allMatches: [] };
+  return { letter: null, confidence: 0, allMatches: [], specialGesture: null };
 }
 
 /**
@@ -90,16 +118,47 @@ export class ClassificationSmoother {
       this.history.shift();
     }
 
-    // Count votes for each letter
-    const votes: Map<string, { count: number; totalConfidence: number }> = new Map();
+    // Count votes for each letter and special gestures
+    const letterVotes: Map<string, { count: number; totalConfidence: number }> = new Map();
+    const specialVotes: Map<string, { count: number; totalConfidence: number }> = new Map();
     
     for (const r of this.history) {
       if (r.letter) {
-        const current = votes.get(r.letter) || { count: 0, totalConfidence: 0 };
+        const current = letterVotes.get(r.letter) || { count: 0, totalConfidence: 0 };
         current.count++;
         current.totalConfidence += r.confidence;
-        votes.set(r.letter, current);
+        letterVotes.set(r.letter, current);
       }
+      if (r.specialGesture) {
+        const current = specialVotes.get(r.specialGesture) || { count: 0, totalConfidence: 0 };
+        current.count++;
+        current.totalConfidence += r.confidence;
+        specialVotes.set(r.specialGesture, current);
+      }
+    }
+
+    // Check for special gesture first (takes priority)
+    let bestSpecial: SpecialGesture | null = null;
+    let bestSpecialCount = 0;
+    let bestSpecialConfidence = 0;
+
+    specialVotes.forEach((value, gesture) => {
+      if (value.count > bestSpecialCount || 
+          (value.count === bestSpecialCount && value.totalConfidence > bestSpecialConfidence)) {
+        bestSpecial = gesture as SpecialGesture;
+        bestSpecialCount = value.count;
+        bestSpecialConfidence = value.totalConfidence;
+      }
+    });
+
+    // If special gesture has majority, return it
+    if (bestSpecialCount >= Math.ceil(this.historySize / 2)) {
+      return {
+        letter: null,
+        confidence: bestSpecialConfidence / bestSpecialCount,
+        allMatches: result.allMatches,
+        specialGesture: bestSpecial,
+      };
     }
 
     // Find letter with most votes
@@ -107,7 +166,7 @@ export class ClassificationSmoother {
     let bestCount = 0;
     let bestConfidence = 0;
 
-    votes.forEach((value, letter) => {
+    letterVotes.forEach((value, letter) => {
       if (value.count > bestCount || 
           (value.count === bestCount && value.totalConfidence > bestConfidence)) {
         bestLetter = letter as SupportedLetter;
@@ -122,10 +181,11 @@ export class ClassificationSmoother {
         letter: bestLetter,
         confidence: bestConfidence / bestCount,
         allMatches: result.allMatches,
+        specialGesture: null,
       };
     }
 
-    return { letter: null, confidence: 0, allMatches: [] };
+    return { letter: null, confidence: 0, allMatches: [], specialGesture: null };
   }
 
   reset(): void {

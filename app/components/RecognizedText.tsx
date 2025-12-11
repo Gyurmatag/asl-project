@@ -9,6 +9,9 @@ interface RecognizedTextProps {
   onClear: () => void;
   onBackspace: () => void;
   onAddSpace: () => void;
+  onDone: () => void;
+  canSave: boolean;
+  bothHandsOpen?: boolean;
 }
 
 // Letter hints for common letters
@@ -45,6 +48,9 @@ export default function RecognizedText({
   onClear,
   onBackspace,
   onAddSpace,
+  onDone,
+  canSave,
+  bothHandsOpen = false,
 }: RecognizedTextProps) {
   const displayLetter = currentLetter?.letter || null;
   const displayConfidence = currentLetter?.confidence ?? 0;
@@ -53,37 +59,53 @@ export default function RecognizedText({
     <div className="w-full max-w-[640px] space-y-4">
       {/* Current Detection */}
       <div className="bg-zinc-900 rounded-lg p-6 text-center">
-        <p className="text-zinc-500 text-sm mb-2">Detected Letter</p>
+        <p className="text-zinc-500 text-sm mb-2">
+          {bothHandsOpen ? "Done Gesture Detected" : "Detected Letter"}
+        </p>
         <div className="flex items-center justify-center gap-6">
-          <span className="font-bold text-white text-7xl min-w-[80px]">
-            {displayLetter || "—"}
-          </span>
-          {displayLetter && (
-            <div className="flex flex-col items-start">
-              <span className="text-zinc-400 text-sm mb-1">Confidence</span>
-              <div className="flex items-center gap-2">
-                <div className="w-28 h-2.5 bg-zinc-700 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-200 ${
-                      displayConfidence > 0.75
-                        ? "bg-green-500"
-                        : displayConfidence > 0.6
-                        ? "bg-yellow-500"
-                        : "bg-orange-500"
-                    }`}
-                    style={{ width: `${displayConfidence * 100}%` }}
-                  />
-                </div>
-                <span className="text-zinc-400 text-sm font-mono">
-                  {Math.round(displayConfidence * 100)}%
+          {bothHandsOpen ? (
+            <div className="flex items-center gap-3">
+              <span className="text-6xl">🙌</span>
+              <div className="flex flex-col items-start">
+                <span className="text-white text-xl font-medium">Both Hands Open</span>
+                <span className="text-zinc-400 text-sm">
+                  {canSave ? "Hold to save message" : "Spell something first"}
                 </span>
               </div>
-              {LETTER_HINTS[displayLetter] && (
-                <span className="text-zinc-500 text-xs mt-2">
-                  {LETTER_HINTS[displayLetter]}
-                </span>
-              )}
             </div>
+          ) : (
+            <>
+              <span className="font-bold text-white text-7xl min-w-[80px]">
+                {displayLetter || "—"}
+              </span>
+              {displayLetter && (
+                <div className="flex flex-col items-start">
+                  <span className="text-zinc-400 text-sm mb-1">Confidence</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-28 h-2.5 bg-zinc-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-200 ${
+                          displayConfidence > 0.75
+                            ? "bg-green-500"
+                            : displayConfidence > 0.6
+                            ? "bg-yellow-500"
+                            : "bg-orange-500"
+                        }`}
+                        style={{ width: `${displayConfidence * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-zinc-400 text-sm font-mono">
+                      {Math.round(displayConfidence * 100)}%
+                    </span>
+                  </div>
+                  {LETTER_HINTS[displayLetter] && (
+                    <span className="text-zinc-500 text-xs mt-2">
+                      {LETTER_HINTS[displayLetter]}
+                    </span>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -121,6 +143,26 @@ export default function RecognizedText({
           )}
           <span className="animate-pulse text-blue-400">|</span>
         </div>
+        
+        {/* Done/Save Button */}
+        <div className="mt-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-zinc-500 text-sm">
+            <span>🙌</span>
+            <span>Show both palms to save message</span>
+          </div>
+          <button
+            onClick={onDone}
+            disabled={!canSave}
+            className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${
+              canSave
+                ? "bg-green-600 hover:bg-green-500 text-white"
+                : "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+            }`}
+          >
+            <span>✓</span>
+            Done
+          </button>
+        </div>
       </div>
 
       {/* Letter Reference */}
@@ -144,7 +186,8 @@ export default function RecognizedText({
           ))}
         </div>
         <p className="text-zinc-500 text-xs mt-3">
-          💡 Tip: Use the <span className="text-blue-400">Space</span> button between words. 
+          💡 Tip: Use <span className="text-blue-400">Space</span> between words. 
+          Show <span className="text-green-400">🙌 both hands open</span> (~1.5s) to save your message.
           Letters J and Z require motion (not yet supported).
         </p>
       </div>

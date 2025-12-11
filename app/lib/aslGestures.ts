@@ -233,7 +233,22 @@ yGesture.addCurl(Finger.Middle, FingerCurl.FullCurl, 1.0);
 yGesture.addCurl(Finger.Ring, FingerCurl.FullCurl, 1.0);
 yGesture.addCurl(Finger.Pinky, FingerCurl.NoCurl, 1.0);
 
-// Export all gestures
+// ===== Special Gestures =====
+
+// OPEN_PALM: All fingers extended, palm facing camera (like "stop" gesture)
+// Used for "done" signal when shown with BOTH hands
+const openPalmGesture = createGesture("OPEN_PALM");
+openPalmGesture.addCurl(Finger.Thumb, FingerCurl.NoCurl, 0.8);
+openPalmGesture.addCurl(Finger.Index, FingerCurl.NoCurl, 1.0);
+openPalmGesture.addCurl(Finger.Middle, FingerCurl.NoCurl, 1.0);
+openPalmGesture.addCurl(Finger.Ring, FingerCurl.NoCurl, 1.0);
+openPalmGesture.addCurl(Finger.Pinky, FingerCurl.NoCurl, 1.0);
+openPalmGesture.addDirection(Finger.Index, FingerDirection.VerticalUp, 0.8);
+openPalmGesture.addDirection(Finger.Middle, FingerDirection.VerticalUp, 0.8);
+openPalmGesture.addDirection(Finger.Ring, FingerDirection.VerticalUp, 0.8);
+openPalmGesture.addDirection(Finger.Pinky, FingerDirection.VerticalUp, 0.8);
+
+// Export all letter gestures
 export const ASL_GESTURES = [
   aGesture,
   bGesture,
@@ -261,5 +276,15 @@ export const ASL_GESTURES = [
   yGesture,
 ];
 
-// Create and export the gesture estimator
-export const gestureEstimator = new Fingerpose.GestureEstimator(ASL_GESTURES);
+// Special control gestures (not letters)
+export const SPECIAL_GESTURES = {
+  OPEN_PALM: openPalmGesture,
+} as const;
+
+export type SpecialGesture = keyof typeof SPECIAL_GESTURES;
+
+// All gestures combined for the estimator
+export const ALL_GESTURES = [...ASL_GESTURES, openPalmGesture];
+
+// Create and export the gesture estimator (includes special gestures)
+export const gestureEstimator = new Fingerpose.GestureEstimator(ALL_GESTURES);
