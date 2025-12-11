@@ -9,6 +9,9 @@ services:
       - ${PROJECT_HOME}/app:/usr/local/app/frontend/app
       - ${PROJECT_HOME}/lib:/usr/local/app/frontend/lib
       - ${PROJECT_HOME}/public:/usr/local/app/frontend/public
+      - ${PROJECT_HOME}/scripts:/usr/local/app/frontend/scripts
+      - ${PROJECT_HOME}/stubs:/usr/local/app/frontend/stubs
+      - ${PROJECT_HOME}/types:/usr/local/app/frontend/types
       - ${PROJECT_HOME}/package.json:/usr/local/app/frontend/package.json
       - ${PROJECT_HOME}/package-lock.json:/usr/local/app/frontend/package-lock.json
       - ${PROJECT_HOME}/tsconfig.json:/usr/local/app/frontend/tsconfig.json
