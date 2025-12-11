@@ -11,7 +11,8 @@ import {
 } from "../lib/mlClassifier";
 
 // Minimum delay between detections in ms (prevents CPU overload)
-const MIN_DETECTION_DELAY_MS = 30;
+// 100ms = 10 FPS is plenty for ASL recognition and much lighter on CPU
+const MIN_DETECTION_DELAY_MS = 100;
 
 // Hand connections for drawing skeleton
 const HAND_CONNECTIONS = [
@@ -69,6 +70,23 @@ export function useHandDetection({
   const smootherRef = useRef<ClassificationSmoother>(new ClassificationSmoother(3));
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isRunningRef = useRef(false);
+  
+  // Store callbacks in refs to avoid restarting detection loop when they change
+  const onLetterDetectedRef = useRef(onLetterDetected);
+  const onBothHandsOpenPalmRef = useRef(onBothHandsOpenPalm);
+  
+  // Track previous state values to avoid unnecessary re-renders
+  const prevHandsCountRef = useRef(0);
+  const prevBothHandsOpenPalmRef = useRef(false);
+  
+  // Keep refs up to date
+  useEffect(() => {
+    onLetterDetectedRef.current = onLetterDetected;
+  }, [onLetterDetected]);
+  
+  useEffect(() => {
+    onBothHandsOpenPalmRef.current = onBothHandsOpenPalm;
+  }, [onBothHandsOpenPalm]);
 
   // Initialize TensorFlow and load model
   useEffect(() => {
@@ -198,13 +216,20 @@ export function useHandDetection({
         // Clear canvas
         ctx.clearRect(0, 0, canvasElement!.width, canvasElement!.height);
 
-        const detection: HandDetectionResult = {
-          hands,
-          timestamp: Date.now(),
-        };
-        setCurrentDetection(detection);
-        setHandDetected(hands.length > 0);
-        setHandsCount(hands.length);
+        // Only update state when values actually change to reduce re-renders
+        const newHandsCount = hands.length;
+        if (newHandsCount !== prevHandsCountRef.current) {
+          prevHandsCountRef.current = newHandsCount;
+          setHandDetected(newHandsCount > 0);
+          setHandsCount(newHandsCount);
+          
+          // Only update currentDetection when hands count changes
+          const detection: HandDetectionResult = {
+            hands,
+            timestamp: Date.now(),
+          };
+          setCurrentDetection(detection);
+        }
 
         if (hands.length > 0) {
           // Draw all detected hands
@@ -227,12 +252,16 @@ export function useHandDetection({
             bothPalmsOpen = openPalmCount >= 2;
           }
           
-          setBothHandsOpenPalm(bothPalmsOpen);
-          onBothHandsOpenPalm?.(bothPalmsOpen);
+          // Only update state when value changes
+          if (bothPalmsOpen !== prevBothHandsOpenPalmRef.current) {
+            prevBothHandsOpenPalmRef.current = bothPalmsOpen;
+            setBothHandsOpenPalm(bothPalmsOpen);
+          }
+          onBothHandsOpenPalmRef.current?.(bothPalmsOpen);
           
           // If both palms are open, don't process for letter detection
           if (bothPalmsOpen) {
-            onLetterDetected?.({ letter: null, confidence: 0, allMatches: [], specialGesture: "OPEN_PALM" });
+            onLetterDetectedRef.current?.({ letter: null, confidence: 0, allMatches: [], specialGesture: "OPEN_PALM" });
           } else {
             // Use the first hand for classification (or right hand if available)
             const rightHand = hands.find(h => h.handedness === "Right");
@@ -247,14 +276,17 @@ export function useHandDetection({
 
             // Smooth the result
             const smoothedResult = smootherRef.current.addResult(rawResult);
-            onLetterDetected?.(smoothedResult);
+            onLetterDetectedRef.current?.(smoothedResult);
           }
         } else {
           // No hand detected, reset smoother
-          setBothHandsOpenPalm(false);
-          onBothHandsOpenPalm?.(false);
+          if (prevBothHandsOpenPalmRef.current !== false) {
+            prevBothHandsOpenPalmRef.current = false;
+            setBothHandsOpenPalm(false);
+          }
+          onBothHandsOpenPalmRef.current?.(false);
           smootherRef.current.reset();
-          onLetterDetected?.({ letter: null, confidence: 0, allMatches: [] });
+          onLetterDetectedRef.current?.({ letter: null, confidence: 0, allMatches: [] });
         }
       } catch (error) {
         console.error("Error during hand detection:", error);
@@ -289,8 +321,8 @@ export function useHandDetection({
     isModelLoading,
     modelError,
     drawHand,
-    onLetterDetected,
-    onBothHandsOpenPalm,
+    // Note: onLetterDetected and onBothHandsOpenPalm are stored in refs
+    // to prevent detection loop restarts when callbacks change
   ]);
 
   return {

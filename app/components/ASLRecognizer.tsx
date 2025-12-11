@@ -46,14 +46,35 @@ export default function ASLRecognizer() {
   const HOLD_DURATION = 800;
   const DONE_HOLD_DURATION = 1200;
 
+  // Store values in refs to avoid callback recreation
+  const recognizedTextRef = useRef(recognizedText);
+  const doneTriggeredRef = useRef(doneTriggered);
+  const sendMessageRef = useRef(sendMessage);
+  
+  // Keep refs up to date
+  useEffect(() => {
+    recognizedTextRef.current = recognizedText;
+  }, [recognizedText]);
+  
+  useEffect(() => {
+    doneTriggeredRef.current = doneTriggered;
+  }, [doneTriggered]);
+  
+  useEffect(() => {
+    sendMessageRef.current = sendMessage;
+  }, [sendMessage]);
+
   // Auto-scroll chat to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, agentTranscript]);
 
-  // Handle two open hands gesture for sending
+  // Handle two open hands gesture for sending - use refs to avoid recreation
   const handleBothHandsOpenPalm = useCallback((detected: boolean) => {
-    if (detected && recognizedText.trim() && !doneTriggered) {
+    const currentText = recognizedTextRef.current;
+    const isDoneTriggered = doneTriggeredRef.current;
+    
+    if (detected && currentText.trim() && !isDoneTriggered) {
       if (bothHandsStartRef.current === 0) {
         bothHandsStartRef.current = Date.now();
       }
@@ -67,7 +88,7 @@ export default function ASLRecognizer() {
         bothHandsStartRef.current = 0;
         
         // Send to ElevenLabs agent
-        sendMessage(recognizedText).then(() => {
+        sendMessageRef.current(currentText).then(() => {
           setRecognizedText("");
           setTimeout(() => setDoneTriggered(false), 2000);
         });
@@ -76,7 +97,7 @@ export default function ASLRecognizer() {
       bothHandsStartRef.current = 0;
       setBothHandsProgress(0);
     }
-  }, [recognizedText, sendMessage, doneTriggered]);
+  }, []); // Empty deps - uses refs for all values
 
   const handleLetterDetected = useCallback((result: LetterClassificationResult) => {
     setCurrentLetter(result);
