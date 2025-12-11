@@ -10,6 +10,134 @@ interface ConversationMessage {
   timestamp: Date;
 }
 
+// Expand signed text into friendly, natural sentences
+function expandSignedText(text: string): string {
+  const upperText = text.toUpperCase().trim();
+  
+  // Greetings - expand to warm, friendly versions
+  const greetings: Record<string, string> = {
+    'HI': 'Hi there! How are you doing today?',
+    'HELLO': 'Hello! How are you doing today?',
+    'HEY': 'Hey! How\'s it going?',
+    'GOOD MORNING': 'Good morning! I hope you\'re having a wonderful day so far!',
+    'GOOD AFTERNOON': 'Good afternoon! How has your day been?',
+    'GOOD EVENING': 'Good evening! I hope you had a great day!',
+    'GOODMORNING': 'Good morning! I hope you\'re having a wonderful day so far!',
+    'GOODAFTERNOON': 'Good afternoon! How has your day been?',
+    'GOODEVENING': 'Good evening! I hope you had a great day!',
+    'BYE': 'Goodbye! It was great talking with you. Take care!',
+    'GOODBYE': 'Goodbye! It was wonderful chatting with you. Take care!',
+    'SEE YOU': 'See you later! Have a great rest of your day!',
+    'SEE U': 'See you later! Have a great rest of your day!',
+    'LATER': 'See you later! Take care!',
+  };
+
+  // Common phrases - make them friendlier
+  const phrases: Record<string, string> = {
+    'THANK YOU': 'Thank you so much, I really appreciate it!',
+    'THANK U': 'Thank you so much, I really appreciate it!',
+    'THANKS': 'Thanks a lot! That\'s very kind of you.',
+    'SORRY': 'I\'m so sorry about that.',
+    'PLEASE': 'Please, if you don\'t mind.',
+    'YES': 'Yes, absolutely!',
+    'NO': 'No, but thank you for asking.',
+    'OK': 'Okay, sounds good to me!',
+    'OKAY': 'Okay, sounds good!',
+    'NICE TO MEET YOU': 'It\'s so nice to meet you! I\'ve been looking forward to this.',
+    'NICE 2 MEET U': 'It\'s so nice to meet you! I\'ve been looking forward to this.',
+    'NICE TO MEET U': 'It\'s so nice to meet you!',
+    'HOW ARE YOU': 'How are you doing today?',
+    'HOW R U': 'How are you doing today?',
+    'WHAT IS YOUR NAME': 'May I ask what your name is?',
+    'WHAT YOUR NAME': 'May I ask what your name is?',
+    'MY NAME IS': 'My name is',
+    'I AM': 'I am',
+    'IM': 'I\'m',
+    'HELP': 'Would you be able to help me with something?',
+    'NEED HELP': 'I could use some help, if you have a moment.',
+    'EXCUSE ME': 'Excuse me, I have a quick question.',
+    'UNDERSTAND': 'I understand, thank you for explaining that.',
+    'DONT UNDERSTAND': 'I\'m sorry, I didn\'t quite catch that. Could you explain it again?',
+    'DONT GET IT': 'I\'m sorry, I\'m not quite following. Could you help me understand?',
+    'WAIT': 'Could you please wait just a moment?',
+    'ONE MOMENT': 'Just one moment, please.',
+    'GOOD JOB': 'Great job! That was really well done!',
+    'WELL DONE': 'Well done! That\'s fantastic!',
+    'CONGRATULATIONS': 'Congratulations! That\'s wonderful news!',
+    'HAPPY BIRTHDAY': 'Happy birthday! I hope you have an amazing day!',
+    'WELCOME': 'Welcome! It\'s great to have you here!',
+    'YOU ARE WELCOME': 'You\'re very welcome!',
+    'YOUR WELCOME': 'You\'re very welcome!',
+    'NO PROBLEM': 'No problem at all! Happy to help.',
+  };
+
+  // Check for exact matches first
+  if (greetings[upperText]) {
+    return greetings[upperText];
+  }
+  if (phrases[upperText]) {
+    return phrases[upperText];
+  }
+
+  // Check for partial matches (text contains these phrases)
+  for (const [key, value] of Object.entries(greetings)) {
+    if (upperText === key) {
+      return value;
+    }
+  }
+  
+  for (const [key, value] of Object.entries(phrases)) {
+    if (upperText === key) {
+      return value;
+    }
+  }
+
+  // Handle patterns like "MY NAME IS X" or "I AM X"
+  if (upperText.startsWith('MY NAME IS ') || upperText.startsWith('MY NAME ')) {
+    const name = text.replace(/^MY NAME (IS )?/i, '').trim();
+    return `Hi there! My name is ${name}, it\'s great to meet you!`;
+  }
+  
+  if (upperText.startsWith('IM ') || upperText.startsWith('I AM ')) {
+    const rest = text.replace(/^I(M| AM) /i, '').trim();
+    return `I\'m ${rest}.`;
+  }
+
+  if (upperText.startsWith('THANK') && upperText.includes('FOR')) {
+    return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase() + ', I really appreciate it!';
+  }
+
+  if (upperText.startsWith('SORRY') && upperText.length > 5) {
+    return 'I\'m so ' + text.toLowerCase() + '.';
+  }
+
+  // Questions - make them polite
+  if (upperText.startsWith('WHERE')) {
+    return 'Excuse me, could you please tell me ' + text.toLowerCase() + '?';
+  }
+  
+  if (upperText.startsWith('WHAT TIME') || upperText.startsWith('WHATTIME')) {
+    return 'Could you tell me what time it is, please?';
+  }
+  
+  if (upperText.startsWith('HOW MUCH') || upperText.startsWith('HOWMUCH')) {
+    return 'How much does this cost, if you don\'t mind me asking?';
+  }
+
+  // Default: Clean up the text and make it a proper sentence
+  let result = text.trim();
+  
+  // Capitalize first letter
+  result = result.charAt(0).toUpperCase() + result.slice(1).toLowerCase();
+  
+  // Add period if no punctuation at end
+  if (!/[.!?]$/.test(result)) {
+    result += '.';
+  }
+  
+  return result;
+}
+
 interface UseElevenLabsAgentReturn {
   isConnecting: boolean;
   isConnected: boolean;
@@ -210,14 +338,19 @@ export function useElevenLabsAgent(): UseElevenLabsAgentReturn {
     }
   }, [conversation, startConversation]);
 
-  // Direct TTS - "Speak for Me" mode (just speaks the text, no AI response)
+  // Direct TTS - "Speak for Me" mode (expands text and speaks it)
   const speakText = useCallback(async (text: string) => {
     if (!text.trim()) return;
     
     setError(null);
     setIsSpeakingTTS(true);
 
-    // Add user message to conversation
+    // Expand the signed text into a friendly sentence
+    const expandedText = expandSignedText(text);
+    console.log('🔊 Original:', text);
+    console.log('✨ Expanded:', expandedText);
+
+    // Add user message to conversation (show what was signed)
     const userMessage: ConversationMessage = {
       id: `user-${Date.now()}`,
       type: 'user',
@@ -226,11 +359,21 @@ export function useElevenLabsAgent(): UseElevenLabsAgentReturn {
     };
     setMessages(prev => [...prev, userMessage]);
 
+    // Add agent message showing what will be spoken
+    const agentMessage: ConversationMessage = {
+      id: `agent-${Date.now()}`,
+      type: 'agent',
+      text: expandedText,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, agentMessage]);
+
     try {
+      // Send the EXPANDED text to TTS
       const response = await fetch('/api/text-to-speech', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text: expandedText }),
       });
 
       if (!response.ok) {
