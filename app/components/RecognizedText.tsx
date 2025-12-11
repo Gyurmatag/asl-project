@@ -65,11 +65,11 @@ export default function RecognizedText({
       {/* Detected letter display */}
       <div className="detected-letter-display">
         {bothHandsOpen ? (
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <span style={{ fontSize: "48px" }}>🙌</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "32px" }}>🙌</span>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-              <span style={{ fontSize: "18px", fontWeight: 500, color: "var(--color-text)" }}>Both Hands Open</span>
-              <span style={{ fontSize: "14px", color: "var(--color-text-light)" }}>
+              <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--color-text)" }}>Both Hands Open</span>
+              <span style={{ fontSize: "12px", color: "var(--color-text-light)" }}>
                 {canSave ? "Hold to save" : "Spell something first"}
               </span>
             </div>
@@ -115,7 +115,7 @@ export default function RecognizedText({
       <p className="check-note">💡 Hold a letter for ~0.8s to add it</p>
 
       {/* Buttons */}
-      <div className="button-group" style={{ marginTop: "auto", marginBottom: "var(--gap-lg)" }}>
+      <div className="button-group" style={{ marginBottom: "var(--gap-xs)" }}>
         <button
           onClick={onAddSpace}
           className="btn btn-primary btn-small"
