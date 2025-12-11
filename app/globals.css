@@ -4,26 +4,26 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================
-   DESIGN TOKENEK ÉS CSS VÁLTOZÓK
+   DESIGN TOKENS - BLACK & WHITE THEME
    ============================================ */
 
 :root {
-  /* Színpaletta */
-  --color-primary: #4F46E5;
-  --color-primary-light: #6366F1;
-  --color-accent: #14B8A6;
-  --color-accent-warm: #F97316;
+  /* Black & White Color Palette */
+  --color-primary: #000000;
+  --color-primary-light: #1a1a1a;
+  --color-accent: #000000;
+  --color-accent-warm: #333333;
   --color-background: #FFFFFF;
-  --color-surface: #F5F3FF;
-  --color-text: #1F2937;
-  --color-text-light: #6B7280;
-  --color-border: #E5E7EB;
-  --color-success: #10B981;
+  --color-surface: #FAFAFA;
+  --color-text: #000000;
+  --color-text-light: #6B6B6B;
+  --color-border: #E5E5E5;
+  --color-success: #000000;
   --color-idle: #9CA3AF;
-  --color-listening: #3B82F6;
-  --color-speaking: #10B981;
+  --color-listening: #000000;
+  --color-speaking: #000000;
 
-  /* Típográfia */
+  /* Typography */
   --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-size-xs: 12px;
   --font-size-sm: 14px;
@@ -33,14 +33,14 @@
   --font-size-2xl: 24px;
   --font-size-3xl: 30px;
 
-  /* Térköz */
+  /* Spacing */
   --gap-xs: 8px;
   --gap-sm: 12px;
   --gap-base: 16px;
   --gap-lg: 24px;
   --gap-xl: 32px;
 
-  /* Lekerekítés */
+  /* Border Radius */
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
@@ -48,7 +48,7 @@
 }
 
 /* ============================================
-   ALAP STÍLUSOK
+   BASE STYLES
    ============================================ */
 
 * {
@@ -60,7 +60,7 @@
 html, body {
   height: 100%;
   font-family: var(--font-family);
-  background-color: var(--color-surface);
+  background-color: var(--color-background);
   color: var(--color-text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -78,11 +78,11 @@ html, body {
 }
 
 .app-header {
-  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
-  color: white;
+  background: var(--color-background);
+  color: var(--color-text);
   padding: var(--gap-lg) var(--gap-xl);
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .header-content {
@@ -98,11 +98,12 @@ html, body {
   font-size: var(--font-size-2xl);
   font-weight: 700;
   letter-spacing: -0.5px;
+  color: var(--color-text);
 }
 
 .app-branding p {
   font-size: var(--font-size-sm);
-  opacity: 0.9;
+  color: var(--color-text-light);
   margin-top: var(--gap-xs);
 }
 
@@ -110,17 +111,18 @@ html, body {
   display: flex;
   align-items: center;
   gap: var(--gap-base);
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--color-surface);
   padding: var(--gap-sm) var(--gap-base);
   border-radius: var(--radius-lg);
-  backdrop-filter: blur(10px);
+  border: 1px solid var(--color-border);
 }
 
 .avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--color-primary);
+  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -132,10 +134,11 @@ html, body {
 .session-status {
   font-size: var(--font-size-sm);
   font-weight: 500;
+  color: var(--color-text);
 }
 
 /* ============================================
-   FŐ TARTALOM
+   MAIN CONTENT
    ============================================ */
 
 .app-main {
@@ -149,7 +152,7 @@ html, body {
 
 .panel-grid {
   display: grid;
-  grid-template-columns: 1.2fr 1.3fr 1.2fr;
+  grid-template-columns: 1fr 1fr;
   gap: var(--gap-xl);
   height: 100%;
 }
@@ -161,8 +164,8 @@ html, body {
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
   padding: var(--gap-lg);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   overflow: hidden;
+  min-height: 0;
 }
 
 .panel-header {
@@ -200,38 +203,38 @@ html, body {
 }
 
 .status-dot--listening {
-  background-color: var(--color-listening);
+  background-color: var(--color-text);
   animation: pulse 2s infinite;
 }
 
 .status-dot--speaking {
-  background-color: var(--color-speaking);
+  background-color: var(--color-text);
   animation: pulse 2s infinite;
 }
 
 .status-dot--loading {
-  background-color: #F59E0B;
+  background-color: var(--color-text-light);
   animation: pulse 1s infinite;
 }
 
 .status-dot--error {
-  background-color: #EF4444;
+  background-color: #000000;
 }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  50% { opacity: 0.4; }
 }
 
 /* ============================================
-   KAMERA PANEL
+   CAMERA PANEL
    ============================================ */
 
 .camera-frame {
   aspect-ratio: 4 / 3;
-  background: linear-gradient(135deg, #1F2937 0%, #111827 100%);
+  background: #0a0a0a;
   border-radius: var(--radius-md);
-  border: 2px dashed rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -280,7 +283,7 @@ html, body {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  opacity: 0.05;
+  opacity: 0.03;
   background-image: 
     linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent),
     linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent);
@@ -289,7 +292,7 @@ html, body {
 
 .instruction-box {
   background: var(--color-surface);
-  border-left: 3px solid var(--color-accent);
+  border-left: 3px solid var(--color-primary);
   padding: var(--gap-base);
   border-radius: var(--radius-sm);
   margin-bottom: var(--gap-base);
@@ -300,7 +303,7 @@ html, body {
   font-size: var(--font-size-sm);
   font-weight: 600;
   margin-bottom: var(--gap-xs);
-  color: var(--color-accent);
+  color: var(--color-text);
 }
 
 .instruction-box ul {
@@ -319,7 +322,7 @@ html, body {
   content: "•";
   position: absolute;
   left: 0;
-  color: var(--color-accent);
+  color: var(--color-text);
   font-weight: bold;
 }
 
@@ -330,7 +333,7 @@ html, body {
 }
 
 /* ============================================
-   GOMBOK
+   BUTTONS
    ============================================ */
 
 .btn {
@@ -340,8 +343,8 @@ html, body {
   transition: all 0.15s ease;
   font-size: var(--font-size-sm);
   font-weight: 500;
-  border-radius: var(--radius-md);
-  padding: 10px 16px;
+  border-radius: var(--radius-full);
+  padding: 10px 20px;
 }
 
 .btn-primary {
@@ -351,37 +354,38 @@ html, body {
 
 .btn-primary:hover {
   background-color: var(--color-primary-light);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
-  background-color: var(--color-surface);
+  background-color: var(--color-background);
   color: var(--color-text);
   border: 1px solid var(--color-border);
 }
 
 .btn-secondary:hover {
-  background-color: #F3F0FF;
-  border-color: var(--color-primary);
+  background-color: var(--color-surface);
+  border-color: var(--color-text);
 }
 
 .btn-small {
-  padding: 8px 12px;
+  padding: 8px 16px;
   font-size: var(--font-size-xs);
 }
 
 .btn-danger {
-  background-color: #FEE2E2;
-  color: #DC2626;
-  border: 1px solid #FECACA;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
 }
 
 .btn-danger:hover {
-  background-color: #FECACA;
+  background-color: var(--color-surface);
+  border-color: var(--color-text);
 }
 
 /* ============================================
-   SZÖVEG PANEL
+   TEXT PANEL
    ============================================ */
 
 .text-content {
@@ -389,6 +393,8 @@ html, body {
   display: flex;
   flex-direction: column;
   margin-bottom: var(--gap-base);
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .status-bar {
@@ -406,7 +412,7 @@ html, body {
 .status-indicator {
   width: 8px;
   height: 8px;
-  background: var(--color-accent);
+  background: var(--color-text);
   border-radius: 50%;
   animation: pulse 2s infinite;
 }
@@ -436,7 +442,7 @@ html, body {
 }
 
 /* ============================================
-   FELISMERT BETŰ KIJELZÉS
+   DETECTED LETTER DISPLAY
    ============================================ */
 
 .detected-letter-display {
@@ -448,12 +454,13 @@ html, body {
   background: var(--color-surface);
   border-radius: var(--radius-md);
   margin-bottom: var(--gap-base);
+  border: 1px solid var(--color-border);
 }
 
 .detected-letter {
   font-size: 72px;
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-text);
   min-width: 80px;
   text-align: center;
 }
@@ -488,15 +495,15 @@ html, body {
 }
 
 .confidence-bar-fill--high {
-  background: var(--color-success);
+  background: var(--color-text);
 }
 
 .confidence-bar-fill--medium {
-  background: #F59E0B;
+  background: var(--color-text-light);
 }
 
 .confidence-bar-fill--low {
-  background: #F97316;
+  background: #d1d1d1;
 }
 
 .confidence-value {
@@ -520,7 +527,7 @@ html, body {
   bottom: var(--gap-base);
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.85);
   padding: var(--gap-sm) var(--gap-base);
   border-radius: var(--radius-full);
   display: flex;
@@ -544,7 +551,7 @@ html, body {
 
 .hold-progress-fill {
   height: 100%;
-  background: var(--color-success);
+  background: white;
   transition: width 0.1s ease;
 }
 
@@ -553,7 +560,7 @@ html, body {
   bottom: var(--gap-base);
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(16, 185, 129, 0.9);
+  background: rgba(0, 0, 0, 0.9);
   padding: var(--gap-sm) var(--gap-lg);
   border-radius: var(--radius-full);
   display: flex;
@@ -569,7 +576,7 @@ html, body {
 }
 
 /* ============================================
-   ÁBÉCÉ REFERENCIA
+   ALPHABET REFERENCE
    ============================================ */
 
 .alphabet-reference {
@@ -577,6 +584,7 @@ html, body {
   border-radius: var(--radius-md);
   padding: var(--gap-base);
   margin-top: auto;
+  border: 1px solid var(--color-border);
 }
 
 .alphabet-reference-title {
@@ -620,7 +628,7 @@ html, body {
 }
 
 /* ============================================
-   SZITUÁCIÓK PANEL
+   SITUATIONS PANEL
    ============================================ */
 
 .situation-tabs {
@@ -643,8 +651,8 @@ html, body {
 }
 
 .tab:hover {
-  border-color: var(--color-primary);
-  background: #EEF2FF;
+  border-color: var(--color-text);
+  background: var(--color-surface);
 }
 
 .tab--active {
@@ -661,6 +669,7 @@ html, body {
   font-size: var(--font-size-sm);
   color: var(--color-text-light);
   line-height: 1.6;
+  border: 1px solid var(--color-border);
 }
 
 .quick-phrases {
@@ -672,7 +681,7 @@ html, body {
 
 .phrase-chip {
   padding: var(--gap-sm) var(--gap-base);
-  background: var(--color-surface);
+  background: var(--color-background);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
@@ -683,9 +692,8 @@ html, body {
 }
 
 .phrase-chip:hover {
-  background: #F0F9FF;
-  border-color: var(--color-accent);
-  box-shadow: 0 2px 8px rgba(20, 184, 166, 0.15);
+  background: var(--color-surface);
+  border-color: var(--color-text);
 }
 
 .conversation {
@@ -758,7 +766,7 @@ html, body {
 .loading-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -789,37 +797,31 @@ html, body {
    ============================================ */
 
 .error-box {
-  background: #FEE2E2;
-  border: 1px solid #FECACA;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--gap-base);
   margin-bottom: var(--gap-base);
 }
 
 .error-box p {
-  color: #DC2626;
+  color: var(--color-text);
   font-size: var(--font-size-sm);
 }
 
 .error-box-hint {
-  color: #B91C1C;
+  color: var(--color-text-light);
   font-size: var(--font-size-xs);
   margin-top: var(--gap-xs);
-  opacity: 0.8;
 }
 
 /* ============================================
-   RESZPONZÍV DIZÁJN
+   RESPONSIVE DESIGN
    ============================================ */
 
 @media (max-width: 1200px) {
   .panel-grid {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto;
-  }
-
-  .panel:nth-child(3) {
-    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
   }
 }
 

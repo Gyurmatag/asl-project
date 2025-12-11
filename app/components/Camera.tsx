@@ -150,7 +150,7 @@ const Camera = forwardRef<CameraRef, CameraProps>(function Camera(
               <circle cx="60" cy="20" r="4" />
             </svg>
           </div>
-          <p style={{ color: "#EF4444" }}>Camera Error</p>
+          <p style={{ color: "#000" }}>Camera Error</p>
           <p style={{ fontSize: "12px", marginTop: "8px", maxWidth: "200px", textAlign: "center" }}>
             {error}
           </p>

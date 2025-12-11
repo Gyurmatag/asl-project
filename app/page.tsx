@@ -25,17 +25,9 @@ const ASLRecognizer = dynamic(() => import("./components/ASLRecognizer"), {
       </div>
       <div className="panel">
         <div className="panel-header">
-          <h2>Recognized Text</h2>
+          <h2>What the system hears from you</h2>
         </div>
         <div className="text-display text-display-placeholder">
-          Loading...
-        </div>
-      </div>
-      <div className="panel">
-        <div className="panel-header">
-          <h2>Situations & Conversation</h2>
-        </div>
-        <div className="situation-description">
           Loading...
         </div>
       </div>
