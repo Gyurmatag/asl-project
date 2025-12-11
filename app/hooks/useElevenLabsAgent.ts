@@ -23,8 +23,6 @@ interface UseElevenLabsAgentReturn {
   clearMessages: () => void;
 }
 
-const AGENT_ID = 'agent_8601kc79vxyffrcr183zhx2h36sh';
-
 export function useElevenLabsAgent(): UseElevenLabsAgentReturn {
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +30,7 @@ export function useElevenLabsAgent(): UseElevenLabsAgentReturn {
   const [agentTranscript, setAgentTranscript] = useState('');
   
   const pendingMessageRef = useRef<string | null>(null);
+  const lastAgentMessageRef = useRef<string>('');
 
   // Get signed URL from our API
   const getSignedUrl = useCallback(async (): Promise<string> => {
@@ -69,32 +68,58 @@ export function useElevenLabsAgent(): UseElevenLabsAgentReturn {
         };
         setMessages(prev => [...prev, userMessage]);
         
-        // Send to agent via text mode
-        conversation.sendUserMessage(text);
+        // Small delay to ensure connection is ready
+        setTimeout(() => {
+          conversation.sendUserMessage(text);
+        }, 100);
       }
     },
     onDisconnect: () => {
       console.log('Disconnected from ElevenLabs agent');
     },
+    onModeChange: (mode) => {
+      console.log('Mode changed:', mode);
+    },
     onMessage: (message) => {
-      console.log('Agent message:', message);
+      console.log('Agent message received:', JSON.stringify(message, null, 2));
       
-      // Handle agent responses
-      if (message.source === 'ai') {
-        setAgentTranscript(message.message);
+      const msgAny = message as Record<string, unknown>;
+      
+      // Check for agent/AI response text
+      let agentText = '';
+      
+      if (msgAny.message && typeof msgAny.message === 'string') {
+        agentText = msgAny.message;
+      } else if (msgAny.text && typeof msgAny.text === 'string') {
+        agentText = msgAny.text;
+      } else if (msgAny.content && typeof msgAny.content === 'string') {
+        agentText = msgAny.content;
+      }
+      
+      // Check if this is from the agent (not user)
+      const isFromAgent = 
+        msgAny.source === 'ai' || 
+        msgAny.source === 'agent' ||
+        msgAny.role === 'assistant' ||
+        msgAny.type === 'agent_response' ||
+        (agentText && !msgAny.source);
+      
+      if (agentText && isFromAgent) {
+        setAgentTranscript(agentText);
         
-        // Add complete agent message to conversation when it ends
-        if (message.message && message.message.trim()) {
+        if (agentText !== lastAgentMessageRef.current) {
+          lastAgentMessageRef.current = agentText;
+          
           const agentMessage: ConversationMessage = {
             id: `agent-${Date.now()}`,
             type: 'agent',
-            text: message.message,
+            text: agentText,
             timestamp: new Date(),
           };
+          
           setMessages(prev => {
-            // Avoid duplicate messages
             const lastMsg = prev[prev.length - 1];
-            if (lastMsg?.type === 'agent' && lastMsg?.text === message.message) {
+            if (lastMsg?.type === 'agent' && lastMsg?.text === agentText) {
               return prev;
             }
             return [...prev, agentMessage];
@@ -102,9 +127,11 @@ export function useElevenLabsAgent(): UseElevenLabsAgentReturn {
         }
       }
     },
-    onError: (error) => {
-      console.error('ElevenLabs error:', error);
-      setError(typeof error === 'string' ? error : 'Connection error');
+    onError: (err) => {
+      console.error('ElevenLabs error:', err);
+      const errorMessage = typeof err === 'string' ? err : 
+        (err as Error)?.message || 'Connection error';
+      setError(errorMessage);
       setIsConnecting(false);
     },
   });
@@ -116,12 +143,25 @@ export function useElevenLabsAgent(): UseElevenLabsAgentReturn {
     setError(null);
 
     try {
+      // Request microphone permission first - required by SDK for audio playback
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Stop the tracks immediately - we just needed permission
+        stream.getTracks().forEach(track => track.stop());
+      } catch (micError) {
+        console.warn('Microphone access denied, audio may not work:', micError);
+      }
+
       const signedUrl = await getSignedUrl();
+      console.log('Starting session with signed URL');
+      
       await conversation.startSession({
         signedUrl,
-        clientTools: {},
       });
+      
+      console.log('Session started successfully');
     } catch (err) {
+      console.error('Failed to start conversation:', err);
       setError(err instanceof Error ? err.message : 'Failed to start conversation');
       setIsConnecting(false);
     }
@@ -139,6 +179,7 @@ export function useElevenLabsAgent(): UseElevenLabsAgentReturn {
     if (!text.trim()) return;
     
     setError(null);
+    lastAgentMessageRef.current = '';
 
     // If not connected, connect first and queue the message
     if (conversation.status !== 'connected') {
@@ -158,8 +199,10 @@ export function useElevenLabsAgent(): UseElevenLabsAgentReturn {
 
     // Send to agent
     try {
+      console.log('Sending message to agent:', text);
       conversation.sendUserMessage(text);
     } catch (err) {
+      console.error('Failed to send message:', err);
       setError(err instanceof Error ? err.message : 'Failed to send message');
     }
   }, [conversation, startConversation]);
@@ -167,6 +210,7 @@ export function useElevenLabsAgent(): UseElevenLabsAgentReturn {
   const clearMessages = useCallback(() => {
     setMessages([]);
     setAgentTranscript('');
+    lastAgentMessageRef.current = '';
   }, []);
 
   // Cleanup on unmount
