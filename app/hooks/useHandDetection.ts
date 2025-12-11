@@ -20,6 +20,12 @@ const HAND_CONNECTIONS = [
   [5, 9], [9, 13], [13, 17],             // Palm
 ];
 
+// Colors for different hands
+const HAND_COLORS = {
+  Left: { skeleton: "#00FF00", keypoint: "#FF0000", label: "Left" },  // Green skeleton, red keypoints
+  Right: { skeleton: "#00BFFF", keypoint: "#FF6600", label: "Right" }, // Blue skeleton, orange keypoints
+};
+
 export interface HandDetectionResult {
   hands: handPoseDetection.Hand[];
   timestamp: number;
@@ -37,6 +43,7 @@ interface UseHandDetectionReturn {
   modelError: string | null;
   currentDetection: HandDetectionResult | null;
   handDetected: boolean;
+  handsCount: number;
 }
 
 export function useHandDetection({
@@ -49,6 +56,7 @@ export function useHandDetection({
   const [modelError, setModelError] = useState<string | null>(null);
   const [currentDetection, setCurrentDetection] = useState<HandDetectionResult | null>(null);
   const [handDetected, setHandDetected] = useState(false);
+  const [handsCount, setHandsCount] = useState(0);
 
   const detectorRef = useRef<handPoseDetection.HandDetector | null>(null);
   const smootherRef = useRef<ClassificationSmoother>(new ClassificationSmoother(5));
@@ -74,7 +82,7 @@ export function useHandDetection({
         const detectorConfig: handPoseDetection.MediaPipeHandsTfjsModelConfig = {
           runtime: "tfjs",
           modelType: "full", // 'lite' or 'full'
-          maxHands: 1, // Only detect one hand for ASL
+          maxHands: 2, // Detect both hands
         };
 
         const detector = await handPoseDetection.createDetector(model, detectorConfig);
@@ -112,10 +120,13 @@ export function useHandDetection({
   const drawHand = useCallback(
     (hand: handPoseDetection.Hand, ctx: CanvasRenderingContext2D) => {
       const keypoints = hand.keypoints;
+      // Get colors based on handedness (Left/Right)
+      const handedness = hand.handedness as "Left" | "Right";
+      const colors = HAND_COLORS[handedness] || HAND_COLORS.Right;
 
       // Draw connections (skeleton)
-      ctx.strokeStyle = "#00FF00";
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = colors.skeleton;
+      ctx.lineWidth = 3;
       for (const [start, end] of HAND_CONNECTIONS) {
         const startPoint = keypoints[start];
         const endPoint = keypoints[end];
@@ -131,11 +142,22 @@ export function useHandDetection({
       for (const keypoint of keypoints) {
         ctx.beginPath();
         ctx.arc(keypoint.x, keypoint.y, 5, 0, 2 * Math.PI);
-        ctx.fillStyle = "#FF0000";
+        ctx.fillStyle = colors.keypoint;
         ctx.fill();
         ctx.strokeStyle = "#FFFFFF";
         ctx.lineWidth = 1;
         ctx.stroke();
+      }
+
+      // Draw hand label near wrist (keypoint 0)
+      const wrist = keypoints[0];
+      if (wrist) {
+        ctx.font = "bold 14px Arial";
+        ctx.fillStyle = colors.skeleton;
+        ctx.strokeStyle = "#000000";
+        ctx.lineWidth = 3;
+        ctx.strokeText(colors.label, wrist.x - 20, wrist.y + 30);
+        ctx.fillText(colors.label, wrist.x - 20, wrist.y + 30);
       }
     },
     []
@@ -173,16 +195,21 @@ export function useHandDetection({
         };
         setCurrentDetection(detection);
         setHandDetected(hands.length > 0);
+        setHandsCount(hands.length);
 
         if (hands.length > 0) {
-          const hand = hands[0];
-          
-          // Draw hand landmarks
-          drawHand(hand, ctx);
+          // Draw all detected hands
+          for (const hand of hands) {
+            drawHand(hand, ctx);
+          }
+
+          // Use the first hand for classification (or right hand if available)
+          const rightHand = hands.find(h => h.handedness === "Right");
+          const handForClassification = rightHand || hands[0];
 
           // Classify the gesture
           const rawResult = classifyLetter(
-            hand.keypoints,
+            handForClassification.keypoints,
             videoWidth,
             videoHeight
           );
@@ -233,5 +260,6 @@ export function useHandDetection({
     modelError,
     currentDetection,
     handDetected,
+    handsCount,
   };
 }

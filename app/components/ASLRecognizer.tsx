@@ -56,6 +56,7 @@ export default function ASLRecognizer() {
     modelError,
     currentDetection,
     handDetected,
+    handsCount,
   } = useHandDetection({
     videoElement: cameraRef.current?.videoElement ?? null,
     canvasElement: cameraRef.current?.canvasElement ?? null,
@@ -122,7 +123,9 @@ export default function ASLRecognizer() {
             <div className="w-px h-4 bg-zinc-700" />
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-full bg-blue-500" />
-              <span className="text-sm text-zinc-400">Hand detected</span>
+              <span className="text-sm text-zinc-400">
+                {handsCount === 1 ? "1 hand" : `${handsCount} hands`} detected
+              </span>
             </div>
           </>
         )}
