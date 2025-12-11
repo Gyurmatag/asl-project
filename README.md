@@ -1,3 +1,44 @@
+# sign2voice work
+
+**Breaking barriers in workplace communication for the deaf and hard-of-hearing community.**
+
+## Why This Project?
+
+Millions of deaf and hard-of-hearing individuals who communicate using American Sign Language (ASL) face significant barriers in the workplace. Many struggle to find employment or advance in their careers simply because traditional communication methods don't accommodate sign language.
+
+**sign2voice work** bridges this gap by providing real-time ASL-to-voice translation, enabling seamless communication in professional settings like job interviews, daily standups, and team meetings.
+
+## Who Is This For?
+
+- **Deaf and hard-of-hearing individuals** who use ASL as their primary language
+- **Employers and HR teams** looking to create inclusive workplaces
+- **Colleagues and team members** who want to communicate effectively with deaf coworkers
+- **Job seekers** preparing for interviews where spoken communication is expected
+
+## How It Works
+
+1. **Camera Recognition** — The app uses your webcam to detect hand gestures in real-time using TensorFlow.js and MediaPipe
+2. **ASL Fingerspelling** — Hold each ASL letter sign for ~0.8 seconds to add it to your message
+3. **AI Voice Output** — When ready, trigger the AI agent (thumbs up gesture) to speak your message aloud using natural-sounding voice synthesis
+4. **Two-Way Conversation** — The system facilitates back-and-forth communication in workplace scenarios
+
+## Key Features
+
+- Real-time hand detection and ASL alphabet recognition (A-Y)
+- Natural voice synthesis powered by ElevenLabs
+- Workplace-focused situation templates (interviews, meetings, etc.)
+- Works entirely in the browser — no installation required
+- Privacy-first: video processing happens locally
+
+## Tech Stack
+
+- **Frontend**: Next.js 16, React 19, TypeScript
+- **AI/ML**: TensorFlow.js, MediaPipe Hands, Fingerpose
+- **Voice**: ElevenLabs Conversational AI
+- **Styling**: Tailwind CSS 4
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
