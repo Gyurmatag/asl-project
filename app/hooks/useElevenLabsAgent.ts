@@ -70,7 +70,7 @@ export function useElevenLabsAgent(): UseElevenLabsAgentReturn {
         setMessages(prev => [...prev, userMessage]);
         
         // Send to agent via text mode
-        conversation.sendUserInput(text);
+        conversation.sendUserMessage(text);
       }
     },
     onDisconnect: () => {
@@ -158,7 +158,7 @@ export function useElevenLabsAgent(): UseElevenLabsAgentReturn {
 
     // Send to agent
     try {
-      conversation.sendUserInput(text);
+      conversation.sendUserMessage(text);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send message');
     }
