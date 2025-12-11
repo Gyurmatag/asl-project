@@ -159,7 +159,7 @@ html, body {
 
 .panel-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: var(--gap-base);
   height: 100%;
 }
@@ -167,6 +167,11 @@ html, body {
 /* Hidden situations panel */
 .panel.panel--situations {
   display: none !important;
+}
+
+/* Conversation panel */
+.panel.panel--conversation {
+  display: flex !important;
 }
 
 .panel {
@@ -851,9 +856,23 @@ html, body {
    RESPONSIVE DESIGN
    ============================================ */
 
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
+  .panel-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .panel.panel--conversation {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 1000px) {
   .panel-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .panel.panel--conversation {
+    grid-column: span 1;
   }
 }
 
@@ -912,5 +931,166 @@ html, body {
 
   .button-group .btn {
     width: 100%;
+  }
+}
+
+/* ============================================
+   CONVERSATION PANEL
+   ============================================ */
+
+.chat-container {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  padding: var(--gap-sm);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  min-height: 200px;
+}
+
+.chat-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: var(--color-text-light);
+  padding: var(--gap-xl);
+}
+
+.chat-empty p {
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--gap-xs);
+}
+
+.chat-empty-hint {
+  font-size: var(--font-size-xs);
+  opacity: 0.7;
+}
+
+.chat-message {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 85%;
+  animation: fadeSlideIn 0.3s ease;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-message--user {
+  align-self: flex-end;
+}
+
+.chat-message--agent {
+  align-self: flex-start;
+}
+
+.chat-message-bubble {
+  padding: var(--gap-sm) var(--gap-base);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.chat-message--user .chat-message-bubble {
+  background: var(--color-primary);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-message--agent .chat-message-bubble {
+  background: var(--color-background);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-bottom-left-radius: 4px;
+}
+
+.chat-message--live .chat-message-bubble {
+  background: var(--color-background);
+  border-style: dashed;
+}
+
+.chat-message-meta {
+  display: flex;
+  gap: var(--gap-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-light);
+  padding: 0 var(--gap-xs);
+}
+
+.chat-message--user .chat-message-meta {
+  justify-content: flex-end;
+}
+
+.typing-cursor {
+  animation: blink 1s infinite;
+  color: var(--color-primary);
+  font-weight: bold;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* ============================================
+   SPEAKING INDICATOR
+   ============================================ */
+
+.speaking-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  padding: var(--gap-sm) var(--gap-base);
+  background: var(--color-surface);
+  border-radius: var(--radius-full);
+  margin-bottom: var(--gap-sm);
+  border: 1px solid var(--color-border);
+  font-size: var(--font-size-xs);
+  color: var(--color-text);
+}
+
+.speaking-waves {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 16px;
+}
+
+.speaking-waves span {
+  width: 3px;
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  animation: wave 1s ease-in-out infinite;
+}
+
+.speaking-waves span:nth-child(1) { animation-delay: 0s; }
+.speaking-waves span:nth-child(2) { animation-delay: 0.1s; }
+.speaking-waves span:nth-child(3) { animation-delay: 0.2s; }
+.speaking-waves span:nth-child(4) { animation-delay: 0.3s; }
+.speaking-waves span:nth-child(5) { animation-delay: 0.4s; }
+
+@keyframes wave {
+  0%, 100% {
+    transform: scaleY(0.5);
+  }
+  50% {
+    transform: scaleY(1);
   }
 }

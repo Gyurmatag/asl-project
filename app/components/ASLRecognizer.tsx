@@ -12,13 +12,25 @@ export default function ASLRecognizer() {
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [recognizedText, setRecognizedText] = useState("");
   const [currentLetter, setCurrentLetter] = useState<LetterClassificationResult | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Camera controls
   const [isPaused, setIsPaused] = useState(false);
   const [isMirrored, setIsMirrored] = useState(true);
 
   // ElevenLabs Agent integration
-  const { isConnecting, isConnected, isSpeaking, error: agentError, sendToAgent } = useElevenLabsAgent();
+  const { 
+    isConnecting, 
+    isConnected, 
+    isSpeaking, 
+    error: agentError, 
+    messages,
+    agentTranscript,
+    sendMessage,
+    startConversation,
+    endConversation,
+    clearMessages,
+  } = useElevenLabsAgent();
 
   const lastLetterRef = useRef<string | null>(null);
   const letterStartTimeRef = useRef<number>(0);
@@ -26,56 +38,49 @@ export default function ASLRecognizer() {
   const [justAddedLetter, setJustAddedLetter] = useState<string | null>(null);
   const [holdProgress, setHoldProgress] = useState(0);
   const [doneTriggered, setDoneTriggered] = useState(false);
-
-  // Both hands open palm detection for sending
-  const bothHandsStartTimeRef = useRef<number>(0);
-  const bothHandsTriggeredRef = useRef(false);
-  const [bothHandsHoldProgress, setBothHandsHoldProgress] = useState(0);
+  
+  // Two open hands tracking
+  const bothHandsStartRef = useRef<number>(0);
+  const [bothHandsProgress, setBothHandsProgress] = useState(0);
 
   const HOLD_DURATION = 800;
-  const BOTH_HANDS_HOLD_DURATION = 1200;
+  const DONE_HOLD_DURATION = 1200;
 
-  // Handle both hands open palm gesture for saving and sending
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, agentTranscript]);
+
+  // Handle two open hands gesture for sending
   const handleBothHandsOpenPalm = useCallback((detected: boolean) => {
-    if (detected && !doneTriggered && recognizedText.trim()) {
-      if (bothHandsStartTimeRef.current === 0) {
-        // Just started detecting both hands
-        bothHandsStartTimeRef.current = Date.now();
-        bothHandsTriggeredRef.current = false;
-      } else if (!bothHandsTriggeredRef.current) {
-        const elapsed = Date.now() - bothHandsStartTimeRef.current;
-        setBothHandsHoldProgress(Math.min(100, (elapsed / BOTH_HANDS_HOLD_DURATION) * 100));
+    if (detected && recognizedText.trim() && !doneTriggered) {
+      if (bothHandsStartRef.current === 0) {
+        bothHandsStartRef.current = Date.now();
+      }
+      
+      const elapsed = Date.now() - bothHandsStartRef.current;
+      setBothHandsProgress(Math.min(100, (elapsed / DONE_HOLD_DURATION) * 100));
+      
+      if (elapsed >= DONE_HOLD_DURATION) {
+        setDoneTriggered(true);
+        setBothHandsProgress(0);
+        bothHandsStartRef.current = 0;
         
-        if (elapsed >= BOTH_HANDS_HOLD_DURATION) {
-          bothHandsTriggeredRef.current = true;
-          setBothHandsHoldProgress(0);
-          setDoneTriggered(true);
-          
-          // Save and send to agent
-          sendToAgent(recognizedText).then(() => {
-            setRecognizedText("");
-            setTimeout(() => {
-              setDoneTriggered(false);
-              bothHandsTriggeredRef.current = false;
-            }, 2000);
-          });
-        }
+        // Send to ElevenLabs agent
+        sendMessage(recognizedText).then(() => {
+          setRecognizedText("");
+          setTimeout(() => setDoneTriggered(false), 2000);
+        });
       }
     } else {
-      // Reset both hands detection
-      bothHandsStartTimeRef.current = 0;
-      setBothHandsHoldProgress(0);
+      bothHandsStartRef.current = 0;
+      setBothHandsProgress(0);
     }
-  }, [recognizedText, sendToAgent, doneTriggered]);
+  }, [recognizedText, sendMessage, doneTriggered]);
 
   const handleLetterDetected = useCallback((result: LetterClassificationResult) => {
     setCurrentLetter(result);
     const letter = result.letter;
-
-    // Skip letter detection if it's an OPEN_PALM special gesture (handled by both hands)
-    if (result.specialGesture === "OPEN_PALM") {
-      return;
-    }
 
     // Track letter stability for regular letters
     if (letter !== lastLetterRef.current) {
@@ -130,15 +135,21 @@ export default function ASLRecognizer() {
       setCurrentLetter(null);
       lastLetterRef.current = null;
       setHoldProgress(0);
-      // Reset both hands detection
-      bothHandsStartTimeRef.current = 0;
-      setBothHandsHoldProgress(0);
+      setBothHandsProgress(0);
+      bothHandsStartRef.current = 0;
     }
   }, [isPaused]);
 
   const handleClear = () => setRecognizedText("");
   const handleBackspace = () => setRecognizedText((prev) => prev.slice(0, -1));
   const handleAddSpace = () => setRecognizedText((prev) => prev + " ");
+  
+  const handleSendMessage = () => {
+    if (recognizedText.trim()) {
+      sendMessage(recognizedText);
+      setRecognizedText("");
+    }
+  };
 
   const handleCameraReady = useCallback(() => {
     setIsCameraReady(true);
@@ -156,6 +167,10 @@ export default function ASLRecognizer() {
     setIsMirrored((prev) => !prev);
   };
 
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   const getStatusText = () => {
     if (modelError) return "Error";
     if (isModelLoading) return "Loading AI model...";
@@ -163,7 +178,7 @@ export default function ASLRecognizer() {
     if (isPaused) return "paused";
     if (isSpeaking) return "Agent speaking...";
     if (isConnecting) return "Connecting to agent...";
-    if (bothHandsOpenPalm) return "🙌 Both hands detected - hold to send";
+    if (bothHandsOpenPalm) return "Both hands detected - hold to send";
     if (handDetected) return `${handsCount} hand${handsCount > 1 ? "s" : ""} detected`;
     return "recognition active";
   };
@@ -173,6 +188,7 @@ export default function ASLRecognizer() {
     if (isModelLoading || !isCameraReady || isConnecting) return "status-dot--loading";
     if (isPaused) return "status-dot--idle";
     if (isSpeaking) return "status-dot--speaking";
+    if (bothHandsOpenPalm) return "status-dot--speaking";
     if (handDetected) return "status-dot--listening";
     return "status-dot--idle";
   };
@@ -231,7 +247,7 @@ export default function ASLRecognizer() {
             </div>
           )}
 
-          {/* DONE Gesture - Sending to Agent */}
+          {/* Sending to Agent Overlay */}
           {doneTriggered && (
             <div className="loading-overlay">
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -249,10 +265,10 @@ export default function ASLRecognizer() {
             </div>
           )}
 
-          {/* Hold Progress - Both Hands Open Palm for sending */}
+          {/* Hold Progress - Two Open Hands (SEND gesture) */}
           {!isPaused &&
             bothHandsOpenPalm &&
-            bothHandsHoldProgress > 0 &&
+            recognizedText.trim() &&
             !doneTriggered && (
               <div className="hold-progress-container">
                 <span style={{ fontSize: "20px" }}>🙌</span>
@@ -260,7 +276,7 @@ export default function ASLRecognizer() {
                 <div className="hold-progress-bar">
                   <div
                     className="hold-progress-fill"
-                    style={{ width: `${bothHandsHoldProgress}%` }}
+                    style={{ width: `${bothHandsProgress}%` }}
                   />
                 </div>
               </div>
@@ -268,9 +284,9 @@ export default function ASLRecognizer() {
 
           {/* Hold Progress - Regular letters */}
           {!isPaused &&
-            !bothHandsOpenPalm &&
             currentLetter &&
             currentLetter.letter &&
+            !bothHandsOpenPalm &&
             lastLetterRef.current === currentLetter.letter &&
             !letterAddedRef.current &&
             !justAddedLetter && (
@@ -291,7 +307,7 @@ export default function ASLRecognizer() {
           <ul>
             <li>Sign at a natural pace</li>
             <li>Keep your hand fully visible</li>
-            <li>🙌 Hold both hands up (open palms) for 1.2s to send</li>
+            <li>🙌 Hold both hands open for 1.2s to send</li>
           </ul>
         </div>
 
@@ -333,80 +349,114 @@ export default function ASLRecognizer() {
           onBackspace={handleBackspace}
           onAddSpace={handleAddSpace}
         />
+
+        {/* Send Button */}
+        <div className="button-group" style={{ marginTop: "var(--gap-sm)" }}>
+          <button
+            onClick={handleSendMessage}
+            disabled={!recognizedText.trim() || isConnecting || isSpeaking}
+            className={`btn ${recognizedText.trim() ? "btn-primary" : "btn-secondary"}`}
+            style={{ flex: 1 }}
+          >
+            {isConnecting ? "Connecting..." : isSpeaking ? "Speaking..." : "🔊 Send & Speak"}
+          </button>
+        </div>
       </div>
 
-      {/* RIGHT PANEL: SITUATIONS */}
-      <div className="panel panel--situations">
+      {/* RIGHT PANEL: CONVERSATION */}
+      <div className="panel panel--conversation">
         <div className="panel-header">
-          <h2>Situations & Conversation</h2>
+          <h2>Conversation</h2>
+          <div className="status-badge">
+            {isConnected && (
+              <>
+                <span className={`status-dot ${isSpeaking ? "status-dot--speaking" : "status-dot--idle"}`}></span>
+                <span>{isSpeaking ? "Speaking" : "Connected"}</span>
+              </>
+            )}
+          </div>
         </div>
 
-        <div className="situation-tabs">
-          <button className="tab tab--active">Job Interview</button>
-          <button className="tab">First Day</button>
-          <button className="tab">Daily Standup</button>
-          <button className="tab">Quick Question</button>
+        {/* Speaking Indicator */}
+        {isSpeaking && (
+          <div className="speaking-indicator">
+            <div className="speaking-waves">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <span>Agent is speaking...</span>
+          </div>
+        )}
+
+        {/* Chat Messages */}
+        <div className="chat-container">
+          {messages.length === 0 ? (
+            <div className="chat-empty">
+              <p>👋 Start signing to begin a conversation</p>
+              <p className="chat-empty-hint">Your decoded messages will appear here along with AI responses</p>
+            </div>
+          ) : (
+            <>
+              {messages.map((message) => (
+                <div 
+                  key={message.id} 
+                  className={`chat-message ${message.type === 'user' ? 'chat-message--user' : 'chat-message--agent'}`}
+                >
+                  <div className="chat-message-bubble">
+                    {message.text}
+                  </div>
+                  <div className="chat-message-meta">
+                    <span>{message.type === 'user' ? 'You' : 'AI Agent'}</span>
+                    <span>{formatTime(message.timestamp)}</span>
+                  </div>
+                </div>
+              ))}
+              
+              {/* Live transcript while agent is speaking */}
+              {isSpeaking && agentTranscript && (
+                <div className="chat-message chat-message--agent chat-message--live">
+                  <div className="chat-message-bubble">
+                    {agentTranscript}
+                    <span className="typing-cursor">|</span>
+                  </div>
+                </div>
+              )}
+              
+              <div ref={chatEndRef} />
+            </>
+          )}
         </div>
 
-        <div className="situation-description">
-          Help with introductions and common interview questions. Choose a pre-made phrase or write your own!
-        </div>
-
-        <div className="quick-phrases">
-          <button className="phrase-chip">
-            "Could you please repeat the question?"
-          </button>
-          <button className="phrase-chip">
-            "I need a few seconds to think about this."
-          </button>
-          <button className="phrase-chip">
-            "Could you show me where to find this in the system?"
-          </button>
-          <button className="phrase-chip">
-            "I'm very happy to be part of the team."
-          </button>
-        </div>
-
-        <div className="conversation">
-          <div className="message message--partner">
-            <div className="message-bubble">
-              Hi! It's wonderful that you're here for the interview. Would you like to tell us a bit about yourself?
-            </div>
-            <div className="message-meta">
-              <span>Interviewer</span>
-              <span>10:24</span>
-            </div>
-          </div>
-
-          <div className="message message--user">
-            <div className="message-bubble">
-              Thank you! I'm very happy to be invited. I've been working in UX for the past five years and was looking for new challenges.
-            </div>
-            <div className="message-meta">
-              <span>You</span>
-              <span>10:25</span>
-            </div>
-          </div>
-
-          <div className="message message--partner">
-            <div className="message-bubble">
-              Excellent! What projects have you spent the most time on?
-            </div>
-            <div className="message-meta">
-              <span>Interviewer</span>
-              <span>10:26</span>
-            </div>
-          </div>
-
-          <div className="message message--user">
-            <div className="message-bubble">
-              Mainly e-commerce and social media applications. User feedback was more important to me than my own ideas.
-            </div>
-            <div className="message-meta">
-              <span>You</span>
-              <span>10:27</span>
-            </div>
-          </div>
+        {/* Connection Controls */}
+        <div className="button-group" style={{ marginTop: "auto", paddingTop: "var(--gap-sm)" }}>
+          {!isConnected ? (
+            <button
+              onClick={startConversation}
+              disabled={isConnecting}
+              className="btn btn-primary btn-small"
+              style={{ flex: 1 }}
+            >
+              {isConnecting ? "Connecting..." : "🎙️ Start Conversation"}
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={endConversation}
+                className="btn btn-secondary btn-small"
+              >
+                End
+              </button>
+              <button
+                onClick={clearMessages}
+                className="btn btn-danger btn-small"
+              >
+                Clear Chat
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -5,15 +5,6 @@ const AGENT_ID = 'agent_8601kc79vxyffrcr183zhx2h36sh';
 
 export async function POST(request: NextRequest) {
   try {
-    const { letters } = await request.json();
-
-    if (!letters || typeof letters !== 'string') {
-      return NextResponse.json(
-        { error: 'Letters string is required' },
-        { status: 400 }
-      );
-    }
-
     if (!ELEVENLABS_API_KEY) {
       return NextResponse.json(
         { error: 'ElevenLabs API key not configured' },
@@ -43,10 +34,8 @@ export async function POST(request: NextRequest) {
 
     const { signed_url } = await signedUrlResponse.json();
 
-    // Return the signed URL and letters for the client to establish WebSocket connection
     return NextResponse.json({
       signedUrl: signed_url,
-      letters: letters,
       agentId: AGENT_ID,
     });
   } catch (error) {
@@ -57,4 +46,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

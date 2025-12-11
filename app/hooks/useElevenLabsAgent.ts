@@ -1,186 +1,193 @@
 "use client";
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { useConversation } from '@elevenlabs/react';
+
+interface ConversationMessage {
+  id: string;
+  type: 'user' | 'agent';
+  text: string;
+  timestamp: Date;
+}
 
 interface UseElevenLabsAgentReturn {
   isConnecting: boolean;
   isConnected: boolean;
   isSpeaking: boolean;
   error: string | null;
-  sendToAgent: (letters: string) => Promise<void>;
-  disconnect: () => void;
+  messages: ConversationMessage[];
+  agentTranscript: string;
+  sendMessage: (text: string) => Promise<void>;
+  startConversation: () => Promise<void>;
+  endConversation: () => Promise<void>;
+  clearMessages: () => void;
 }
+
+const AGENT_ID = 'agent_8601kc79vxyffrcr183zhx2h36sh';
 
 export function useElevenLabsAgent(): UseElevenLabsAgentReturn {
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ConversationMessage[]>([]);
+  const [agentTranscript, setAgentTranscript] = useState('');
   
-  const wsRef = useRef<WebSocket | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const audioQueueRef = useRef<AudioBuffer[]>([]);
-  const isPlayingRef = useRef(false);
+  const pendingMessageRef = useRef<string | null>(null);
 
-  const playNextInQueue = useCallback(async () => {
-    if (isPlayingRef.current || audioQueueRef.current.length === 0) return;
-    
-    isPlayingRef.current = true;
-    setIsSpeaking(true);
-    
-    const buffer = audioQueueRef.current.shift();
-    if (buffer && audioContextRef.current) {
-      const source = audioContextRef.current.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioContextRef.current.destination);
-      source.onended = () => {
-        isPlayingRef.current = false;
-        if (audioQueueRef.current.length > 0) {
-          playNextInQueue();
-        } else {
-          setIsSpeaking(false);
+  // Get signed URL from our API
+  const getSignedUrl = useCallback(async (): Promise<string> => {
+    const response = await fetch('/api/agent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'getSignedUrl' }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get signed URL');
+    }
+
+    const data = await response.json();
+    return data.signedUrl;
+  }, []);
+
+  const conversation = useConversation({
+    onConnect: () => {
+      console.log('Connected to ElevenLabs agent');
+      setIsConnecting(false);
+      setError(null);
+      
+      // If there's a pending message, send it now
+      if (pendingMessageRef.current) {
+        const text = pendingMessageRef.current;
+        pendingMessageRef.current = null;
+        
+        // Add user message to conversation
+        const userMessage: ConversationMessage = {
+          id: `user-${Date.now()}`,
+          type: 'user',
+          text: text,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, userMessage]);
+        
+        // Send to agent via text mode
+        conversation.sendUserInput(text);
+      }
+    },
+    onDisconnect: () => {
+      console.log('Disconnected from ElevenLabs agent');
+    },
+    onMessage: (message) => {
+      console.log('Agent message:', message);
+      
+      // Handle agent responses
+      if (message.source === 'ai') {
+        setAgentTranscript(message.message);
+        
+        // Add complete agent message to conversation when it ends
+        if (message.message && message.message.trim()) {
+          const agentMessage: ConversationMessage = {
+            id: `agent-${Date.now()}`,
+            type: 'agent',
+            text: message.message,
+            timestamp: new Date(),
+          };
+          setMessages(prev => {
+            // Avoid duplicate messages
+            const lastMsg = prev[prev.length - 1];
+            if (lastMsg?.type === 'agent' && lastMsg?.text === message.message) {
+              return prev;
+            }
+            return [...prev, agentMessage];
+          });
         }
-      };
-      source.start();
-    }
-  }, []);
+      }
+    },
+    onError: (error) => {
+      console.error('ElevenLabs error:', error);
+      setError(typeof error === 'string' ? error : 'Connection error');
+      setIsConnecting(false);
+    },
+  });
 
-  const disconnect = useCallback(() => {
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-    setIsConnected(false);
-    setIsSpeaking(false);
-  }, []);
-
-  const sendToAgent = useCallback(async (letters: string) => {
-    setError(null);
+  const startConversation = useCallback(async () => {
+    if (conversation.status === 'connected') return;
+    
     setIsConnecting(true);
+    setError(null);
 
     try {
-      // Get signed URL from our API
-      const response = await fetch('/api/agent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ letters }),
+      const signedUrl = await getSignedUrl();
+      await conversation.startSession({
+        signedUrl,
+        clientTools: {},
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to get agent connection');
-      }
-
-      const { signedUrl } = await response.json();
-
-      // Initialize audio context
-      if (!audioContextRef.current) {
-        audioContextRef.current = new AudioContext({ sampleRate: 16000 });
-      }
-
-      // Close existing connection
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-
-      // Connect to agent via WebSocket
-      const ws = new WebSocket(signedUrl);
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        setIsConnecting(false);
-        setIsConnected(true);
-        
-        // First, send conversation config override for text mode with voice output
-        const configOverride = {
-          type: 'conversation_initiation_client_data',
-          conversation_config_override: {
-            agent: {
-              prompt: {
-                prompt: `You receive ASL fingerspelled letters from a deaf/mute user. Decode them into words and speak naturally. Just say the decoded message, don't explain. Example input: "HELLO" -> say "Hello!"`
-              }
-            }
-          }
-        };
-        ws.send(JSON.stringify(configOverride));
-        
-        // Then send the user's text message
-        setTimeout(() => {
-          const message = {
-            type: 'user_message',
-            text: letters,
-          };
-          ws.send(JSON.stringify(message));
-        }, 100);
-      };
-
-      ws.onmessage = async (event) => {
-        try {
-          // Handle binary audio data
-          if (event.data instanceof Blob) {
-            const arrayBuffer = await event.data.arrayBuffer();
-            if (audioContextRef.current) {
-              const audioBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
-              audioQueueRef.current.push(audioBuffer);
-              playNextInQueue();
-            }
-            return;
-          }
-
-          // Handle JSON messages
-          const data = JSON.parse(event.data);
-          
-          if (data.type === 'audio') {
-            // Base64 encoded audio
-            const audioData = atob(data.audio);
-            const arrayBuffer = new ArrayBuffer(audioData.length);
-            const view = new Uint8Array(arrayBuffer);
-            for (let i = 0; i < audioData.length; i++) {
-              view[i] = audioData.charCodeAt(i);
-            }
-            
-            if (audioContextRef.current) {
-              try {
-                const audioBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
-                audioQueueRef.current.push(audioBuffer);
-                playNextInQueue();
-              } catch {
-                // Audio decode failed, might be partial data
-              }
-            }
-          } else if (data.type === 'agent_response') {
-            console.log('Agent response:', data.text);
-          } else if (data.type === 'error') {
-            setError(data.message || 'Agent error');
-          }
-        } catch {
-          // Non-JSON message, might be audio
-        }
-      };
-
-      ws.onerror = () => {
-        setError('WebSocket connection error');
-        setIsConnecting(false);
-        setIsConnected(false);
-      };
-
-      ws.onclose = () => {
-        setIsConnected(false);
-        setIsConnecting(false);
-      };
-
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(err instanceof Error ? err.message : 'Failed to start conversation');
       setIsConnecting(false);
     }
-  }, [playNextInQueue]);
+  }, [conversation, getSignedUrl]);
+
+  const endConversation = useCallback(async () => {
+    try {
+      await conversation.endSession();
+    } catch (err) {
+      console.error('Error ending conversation:', err);
+    }
+  }, [conversation]);
+
+  const sendMessage = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    
+    setError(null);
+
+    // If not connected, connect first and queue the message
+    if (conversation.status !== 'connected') {
+      pendingMessageRef.current = text;
+      await startConversation();
+      return;
+    }
+
+    // Add user message to conversation
+    const userMessage: ConversationMessage = {
+      id: `user-${Date.now()}`,
+      type: 'user',
+      text: text,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMessage]);
+
+    // Send to agent
+    try {
+      conversation.sendUserInput(text);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send message');
+    }
+  }, [conversation, startConversation]);
+
+  const clearMessages = useCallback(() => {
+    setMessages([]);
+    setAgentTranscript('');
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (conversation.status === 'connected') {
+        conversation.endSession();
+      }
+    };
+  }, [conversation]);
 
   return {
     isConnecting,
-    isConnected,
-    isSpeaking,
+    isConnected: conversation.status === 'connected',
+    isSpeaking: conversation.isSpeaking,
     error,
-    sendToAgent,
-    disconnect,
+    messages,
+    agentTranscript,
+    sendMessage,
+    startConversation,
+    endConversation,
+    clearMessages,
   };
 }
-
