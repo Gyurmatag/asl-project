@@ -313,6 +313,80 @@ export default function ASLRecognizer() {
         />
       </div>
 
+      {/* RIGHT PANEL: SITUATIONS */}
+      <div className="panel panel--situations">
+        <div className="panel-header">
+          <h2>Situations & Conversation</h2>
+        </div>
+
+        <div className="situation-tabs">
+          <button className="tab tab--active">Job Interview</button>
+          <button className="tab">First Day</button>
+          <button className="tab">Daily Standup</button>
+          <button className="tab">Quick Question</button>
+        </div>
+
+        <div className="situation-description">
+          Help with introductions and common interview questions. Choose a pre-made phrase or write your own!
+        </div>
+
+        <div className="quick-phrases">
+          <button className="phrase-chip">
+            "Could you please repeat the question?"
+          </button>
+          <button className="phrase-chip">
+            "I need a few seconds to think about this."
+          </button>
+          <button className="phrase-chip">
+            "Could you show me where to find this in the system?"
+          </button>
+          <button className="phrase-chip">
+            "I'm very happy to be part of the team."
+          </button>
+        </div>
+
+        <div className="conversation">
+          <div className="message message--partner">
+            <div className="message-bubble">
+              Hi! It's wonderful that you're here for the interview. Would you like to tell us a bit about yourself?
+            </div>
+            <div className="message-meta">
+              <span>Interviewer</span>
+              <span>10:24</span>
+            </div>
+          </div>
+
+          <div className="message message--user">
+            <div className="message-bubble">
+              Thank you! I'm very happy to be invited. I've been working in UX for the past five years and was looking for new challenges.
+            </div>
+            <div className="message-meta">
+              <span>You</span>
+              <span>10:25</span>
+            </div>
+          </div>
+
+          <div className="message message--partner">
+            <div className="message-bubble">
+              Excellent! What projects have you spent the most time on?
+            </div>
+            <div className="message-meta">
+              <span>Interviewer</span>
+              <span>10:26</span>
+            </div>
+          </div>
+
+          <div className="message message--user">
+            <div className="message-bubble">
+              Mainly e-commerce and social media applications. User feedback was more important to me than my own ideas.
+            </div>
+            <div className="message-meta">
+              <span>You</span>
+              <span>10:27</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

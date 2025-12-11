@@ -158,6 +158,11 @@ html, body {
   height: 100%;
 }
 
+/* Hidden situations panel */
+.panel.panel--situations {
+  display: none !important;
+}
+
 .panel {
   display: flex;
   flex-direction: column;
