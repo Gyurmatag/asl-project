@@ -8,35 +8,35 @@ const ASLRecognizer = dynamic(() => import("./components/ASLRecognizer"), {
     <div className="panel-grid">
       <div className="panel">
         <div className="panel-header">
-          <h2>Kamera előnézet</h2>
+          <h2>Camera Preview</h2>
           <div className="status-badge">
             <span className="status-dot status-dot--loading"></span>
-            <span>betöltés...</span>
+            <span>loading...</span>
           </div>
         </div>
         <div className="camera-frame">
           <div className="loading-overlay">
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
               <div className="loading-spinner"></div>
-              <p className="loading-text">ASL felismerés betöltése...</p>
+              <p className="loading-text">Loading ASL recognition...</p>
             </div>
           </div>
         </div>
       </div>
       <div className="panel">
         <div className="panel-header">
-          <h2>Felismert szöveg</h2>
+          <h2>Recognized Text</h2>
         </div>
         <div className="text-display text-display-placeholder">
-          Betöltés...
+          Loading...
         </div>
       </div>
       <div className="panel">
         <div className="panel-header">
-          <h2>Szituációk & beszélgetés</h2>
+          <h2>Situations & Conversation</h2>
         </div>
         <div className="situation-description">
-          Betöltés...
+          Loading...
         </div>
       </div>
     </div>
@@ -50,12 +50,12 @@ export default function Home() {
         <div className="header-content">
           <div className="app-branding">
             <h1>sign2voice work</h1>
-            <p>ASL → hang, élő munkahelyi kommunikáció</p>
+            <p>ASL → voice, live workplace communication</p>
           </div>
           <div className="session-block">
             <div className="avatar">JD</div>
             <div className="session-status">
-              🟢 Online – felismerés aktív
+              🟢 Online – recognition active
             </div>
           </div>
         </div>

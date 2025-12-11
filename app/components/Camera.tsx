@@ -73,7 +73,7 @@ const Camera = forwardRef<CameraRef, CameraProps>(function Camera(
         }
       } catch (err) {
         const errorMessage =
-          err instanceof Error ? err.message : "Nem sikerült elérni a kamerát";
+          err instanceof Error ? err.message : "Failed to access camera";
         setError(errorMessage);
         setIsLoading(false);
         onCameraError?.(errorMessage);
@@ -134,7 +134,7 @@ const Camera = forwardRef<CameraRef, CameraProps>(function Camera(
               <circle cx="60" cy="20" r="4" />
             </svg>
           </div>
-          <p>Kamera indítása...</p>
+          <p>Starting camera...</p>
         </div>
       )}
 
@@ -147,7 +147,7 @@ const Camera = forwardRef<CameraRef, CameraProps>(function Camera(
               <circle cx="60" cy="20" r="4" />
             </svg>
           </div>
-          <p style={{ color: "#EF4444" }}>Kamera hiba</p>
+          <p style={{ color: "#EF4444" }}>Camera Error</p>
           <p style={{ fontSize: "12px", marginTop: "8px", maxWidth: "200px", textAlign: "center" }}>
             {error}
           </p>
@@ -155,7 +155,7 @@ const Camera = forwardRef<CameraRef, CameraProps>(function Camera(
       )}
 
       {!isLoading && !error && (
-        <p className="camera-hint">Tartsd a kezed a kép közepén</p>
+        <p className="camera-hint">Keep your hand in the center of the frame</p>
       )}
     </div>
   );

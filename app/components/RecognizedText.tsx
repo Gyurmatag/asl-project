@@ -15,30 +15,30 @@ interface RecognizedTextProps {
 }
 
 const LETTER_HINTS: Record<string, string> = {
-  A: "Ököl, hüvelyk oldalt",
-  B: "Lapos kéz, ujjak felfelé",
-  C: "Görbe kéz (csésze forma)",
-  D: "Mutató fel, többi hüvelyet érint",
-  E: "Ujjak hüvelyre görbülve",
-  F: "OK jel, 3 ujj fel",
-  G: "Mutató + hüvelyk oldalra",
-  H: "Mutató + középső oldalra",
-  I: "Csak kisujj fel",
-  K: "Mutató + középső szétnyitva",
-  L: "L-forma (hüvelyk + mutató)",
-  M: "3 ujj hüvelyen",
-  N: "2 ujj hüvelyen",
-  O: "Ujjak O formát alkotnak",
-  P: "K-kéz lefelé mutat",
-  Q: "G-kéz lefelé mutat",
-  R: "Keresztezett mutató + középső",
-  S: "Ököl, hüvelyk ujjakon",
-  T: "Hüvelyk mutató és középső közt",
-  U: "Mutató + középső együtt fel",
-  V: "Béke jel ✌️",
-  W: "3 ujj fel, szétnyitva",
-  X: "Mutató ujj behajlítva",
-  Y: "Hüvelyk + kisujj ki 🤙",
+  A: "Fist, thumb beside",
+  B: "Flat hand, fingers up",
+  C: "Curved hand (cup shape)",
+  D: "Index up, others touch thumb",
+  E: "Fingers curled over thumb",
+  F: "OK sign, 3 fingers up",
+  G: "Index + thumb point sideways",
+  H: "Index + middle point sideways",
+  I: "Pinky up only",
+  K: "Index + middle up, spread",
+  L: "L-shape (thumb + index)",
+  M: "3 fingers over thumb",
+  N: "2 fingers over thumb",
+  O: "Fingers form O shape",
+  P: "K-hand pointing down",
+  Q: "G-hand pointing down",
+  R: "Crossed index + middle",
+  S: "Fist, thumb over fingers",
+  T: "Thumb between index/middle",
+  U: "Index + middle together up",
+  V: "Peace sign ✌️",
+  W: "3 fingers up spread",
+  X: "Index finger hooked",
+  Y: "Thumb + pinky out 🤙",
 };
 
 export default function RecognizedText({
@@ -62,15 +62,15 @@ export default function RecognizedText({
 
   return (
     <div className="text-content">
-      {/* Felismert betű kijelzés */}
+      {/* Detected letter display */}
       <div className="detected-letter-display">
         {bothHandsOpen ? (
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <span style={{ fontSize: "48px" }}>🙌</span>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-              <span style={{ fontSize: "18px", fontWeight: 500, color: "var(--color-text)" }}>Mindkét kéz nyitva</span>
+              <span style={{ fontSize: "18px", fontWeight: 500, color: "var(--color-text)" }}>Both Hands Open</span>
               <span style={{ fontSize: "14px", color: "var(--color-text-light)" }}>
-                {canSave ? "Tartsd a mentéshez" : "Először írj valamit"}
+                {canSave ? "Hold to save" : "Spell something first"}
               </span>
             </div>
           </div>
@@ -81,7 +81,7 @@ export default function RecognizedText({
             </span>
             {displayLetter && (
               <div className="confidence-display">
-                <span className="confidence-label">Biztonság</span>
+                <span className="confidence-label">Confidence</span>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <div className="confidence-bar">
                     <div
@@ -102,40 +102,40 @@ export default function RecognizedText({
         )}
       </div>
 
-      {/* Felismert szöveg megjelenítése */}
+      {/* Recognized text display */}
       <div className="text-display">
         {text || (
           <span className="text-display-placeholder">
-            Az alkalmazás itt mutatja a felismert szöveget…
+            The app will show recognized text here...
           </span>
         )}
         <span style={{ animation: "pulse 1s infinite", color: "var(--color-primary)" }}>|</span>
       </div>
 
-      <p className="check-note">💡 Tartsd a betűt ~0.8 mp-ig a hozzáadáshoz</p>
+      <p className="check-note">💡 Hold a letter for ~0.8s to add it</p>
 
-      {/* Gombok */}
+      {/* Buttons */}
       <div className="button-group" style={{ marginTop: "auto", marginBottom: "var(--gap-lg)" }}>
         <button
           onClick={onAddSpace}
           className="btn btn-primary btn-small"
-          title="Szóköz hozzáadása"
+          title="Add space"
         >
-          Szóköz
+          Space
         </button>
         <button
           onClick={onBackspace}
           className="btn btn-secondary btn-small"
-          title="Utolsó karakter törlése"
+          title="Delete last character"
         >
-          ← Törlés
+          ← Delete
         </button>
         <button
           onClick={onClear}
           className="btn btn-danger btn-small"
-          title="Teljes szöveg törlése"
+          title="Clear all text"
         >
-          Mindent töröl
+          Clear All
         </button>
         {onDone && (
           <button
@@ -143,17 +143,17 @@ export default function RecognizedText({
             disabled={!canSave}
             className={`btn btn-small ${canSave ? "btn-primary" : "btn-secondary"}`}
             style={{ opacity: canSave ? 1 : 0.5 }}
-            title="Üzenet mentése"
+            title="Save message"
           >
-            ✓ Kész
+            ✓ Done
           </button>
         )}
       </div>
 
-      {/* ABC referencia */}
+      {/* Alphabet reference */}
       <div className="alphabet-reference">
         <p className="alphabet-reference-title">
-          ASL ábécé referencia
+          ASL Alphabet Reference
         </p>
         <div className="alphabet-grid">
           {SUPPORTED_LETTERS.map((letter) => (
@@ -167,8 +167,8 @@ export default function RecognizedText({
           ))}
         </div>
         <p className="alphabet-tip">
-          💡 A J és Z betűk mozgást igényelnek (még nem támogatott).
-          {onDone && " 🙌 Mindkét kéz nyitva (~1.5mp) = mentés."}
+          💡 Letters J and Z require motion (not yet supported).
+          {onDone && " 🙌 Both hands open (~1.5s) = save."}
         </p>
       </div>
     </div>
