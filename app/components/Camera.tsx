@@ -16,12 +16,13 @@ export interface CameraRef {
 interface CameraProps {
   width?: number;
   height?: number;
+  mirrored?: boolean;
   onCameraReady?: () => void;
   onCameraError?: (error: string) => void;
 }
 
 const Camera = forwardRef<CameraRef, CameraProps>(function Camera(
-  { width = 640, height = 480, onCameraReady, onCameraError },
+  { width = 640, height = 480, mirrored = true, onCameraReady, onCameraError },
   ref
 ) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -89,6 +90,8 @@ const Camera = forwardRef<CameraRef, CameraProps>(function Camera(
     };
   }, [width, height, onCameraReady, onCameraError]);
 
+  const transformStyle = mirrored ? "scaleX(-1)" : "none";
+
   return (
     <div className="camera-frame camera-frame--active" style={{ aspectRatio: `${width}/${height}` }}>
       <div className="camera-grid"></div>
@@ -105,7 +108,7 @@ const Camera = forwardRef<CameraRef, CameraProps>(function Camera(
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          transform: "scaleX(-1)",
+          transform: transformStyle,
           borderRadius: "var(--radius-md)",
         }}
       />
@@ -121,7 +124,7 @@ const Camera = forwardRef<CameraRef, CameraProps>(function Camera(
           width: "100%",
           height: "100%",
           pointerEvents: "none",
-          transform: "scaleX(-1)",
+          transform: transformStyle,
         }}
       />
 

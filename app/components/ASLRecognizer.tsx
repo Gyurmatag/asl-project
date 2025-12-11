@@ -13,6 +13,10 @@ export default function ASLRecognizer() {
   const [recognizedText, setRecognizedText] = useState("");
   const [currentLetter, setCurrentLetter] = useState<LetterClassificationResult | null>(null);
 
+  // Camera controls
+  const [isPaused, setIsPaused] = useState(false);
+  const [isMirrored, setIsMirrored] = useState(true);
+
   // ElevenLabs Agent integration
   const { isConnecting, isConnected, isSpeaking, error: agentError, sendToAgent } = useElevenLabsAgent();
 
@@ -88,7 +92,7 @@ export default function ASLRecognizer() {
   } = useHandDetection({
     videoElement: cameraRef.current?.videoElement ?? null,
     canvasElement: cameraRef.current?.canvasElement ?? null,
-    isEnabled: isCameraReady,
+    isEnabled: isCameraReady && !isPaused,
     onLetterDetected: handleLetterDetected,
   });
 
@@ -99,6 +103,15 @@ export default function ASLRecognizer() {
       setHoldProgress(0);
     }
   }, [currentDetection]);
+
+  // Clear detection state when paused
+  useEffect(() => {
+    if (isPaused) {
+      setCurrentLetter(null);
+      lastLetterRef.current = null;
+      setHoldProgress(0);
+    }
+  }, [isPaused]);
 
   const handleClear = () => setRecognizedText("");
   const handleBackspace = () => setRecognizedText((prev) => prev.slice(0, -1));
@@ -112,10 +125,19 @@ export default function ASLRecognizer() {
     console.error("ASLRecognizer - Camera error:", error);
   }, []);
 
+  const handleTogglePause = () => {
+    setIsPaused((prev) => !prev);
+  };
+
+  const handleToggleMirror = () => {
+    setIsMirrored((prev) => !prev);
+  };
+
   const getStatusText = () => {
     if (modelError) return "Error";
     if (isModelLoading) return "Loading AI model...";
     if (!isCameraReady) return "starting camera...";
+    if (isPaused) return "paused";
     if (isSpeaking) return "Agent speaking...";
     if (isConnecting) return "Connecting to agent...";
     if (handDetected) return `${handsCount} hand${handsCount > 1 ? "s" : ""} detected`;
@@ -125,6 +147,7 @@ export default function ASLRecognizer() {
   const getStatusDotClass = () => {
     if (modelError) return "status-dot--error";
     if (isModelLoading || !isCameraReady || isConnecting) return "status-dot--loading";
+    if (isPaused) return "status-dot--idle";
     if (isSpeaking) return "status-dot--speaking";
     if (handDetected) return "status-dot--listening";
     return "status-dot--idle";
@@ -160,9 +183,20 @@ export default function ASLRecognizer() {
             ref={cameraRef}
             width={640}
             height={480}
+            mirrored={isMirrored}
             onCameraReady={handleCameraReady}
             onCameraError={handleCameraError}
           />
+
+          {/* Paused Overlay */}
+          {isPaused && isCameraReady && (
+            <div className="loading-overlay" style={{ background: "rgba(0, 0, 0, 0.6)" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <span style={{ fontSize: "48px", marginBottom: "12px" }}>⏸️</span>
+                <p className="loading-text">Recognition Paused</p>
+              </div>
+            </div>
+          )}
 
           {isCameraReady && isModelLoading && (
             <div className="loading-overlay">
@@ -184,7 +218,7 @@ export default function ASLRecognizer() {
           )}
 
           {/* Letter Added Confirmation */}
-          {justAddedLetter && !doneTriggered && (
+          {justAddedLetter && !doneTriggered && !isPaused && (
             <div className="letter-added-toast">
               <span>✓</span>
               <span>{justAddedLetter}</span>
@@ -192,7 +226,8 @@ export default function ASLRecognizer() {
           )}
 
           {/* Hold Progress - DONE gesture */}
-          {currentLetter &&
+          {!isPaused &&
+            currentLetter &&
             currentLetter.letter === "DONE" &&
             lastLetterRef.current === "DONE" &&
             !letterAddedRef.current &&
@@ -210,7 +245,8 @@ export default function ASLRecognizer() {
             )}
 
           {/* Hold Progress - Regular letters */}
-          {currentLetter &&
+          {!isPaused &&
+            currentLetter &&
             currentLetter.letter &&
             currentLetter.letter !== "DONE" &&
             lastLetterRef.current === currentLetter.letter &&
@@ -238,11 +274,19 @@ export default function ASLRecognizer() {
         </div>
 
         <div className="button-group">
-          <button className="btn btn-secondary btn-small" title="Pause recognition">
-            Pause
+          <button
+            className={`btn btn-small ${isPaused ? "btn-primary" : "btn-secondary"}`}
+            onClick={handleTogglePause}
+            title={isPaused ? "Resume recognition" : "Pause recognition"}
+          >
+            {isPaused ? "▶ Resume" : "⏸ Pause"}
           </button>
-          <button className="btn btn-secondary btn-small" title="Mirror camera">
-            Mirror
+          <button
+            className={`btn btn-small ${!isMirrored ? "btn-primary" : "btn-secondary"}`}
+            onClick={handleToggleMirror}
+            title={isMirrored ? "Disable mirror" : "Enable mirror"}
+          >
+            {isMirrored ? "🔄 Mirrored" : "🔄 Normal"}
           </button>
         </div>
       </div>
@@ -254,15 +298,15 @@ export default function ASLRecognizer() {
         </div>
 
         <div className="status-bar">
-          <span className="status-indicator"></span>
+          <span className="status-indicator" style={{ animationPlayState: isPaused ? "paused" : "running" }}></span>
           <span>
-            {isSpeaking ? "Agent speaking..." : isConnected ? "Agent connected" : "Real-time recognition..."}
+            {isPaused ? "Paused" : isSpeaking ? "Agent speaking..." : isConnected ? "Agent connected" : "Real-time recognition..."}
           </span>
         </div>
 
         <RecognizedText
           text={recognizedText}
-          currentLetter={currentLetter}
+          currentLetter={isPaused ? null : currentLetter}
           onClear={handleClear}
           onBackspace={handleBackspace}
           onAddSpace={handleAddSpace}
