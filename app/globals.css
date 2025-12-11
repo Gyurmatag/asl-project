@@ -1456,6 +1456,57 @@ html, body {
 }
 
 /* ============================================
+   MODE TOGGLE
+   ============================================ */
+
+.mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap-xs);
+  margin-bottom: var(--gap-sm);
+}
+
+.mode-toggle-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--gap-sm);
+  background: var(--color-background);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.mode-toggle-btn:hover {
+  border-color: var(--color-text-light);
+  background: var(--color-surface);
+}
+
+.mode-toggle-btn--active {
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.mode-icon {
+  font-size: 24px;
+}
+
+.mode-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.mode-desc {
+  font-size: 10px;
+  color: var(--color-text-light);
+  line-height: 1.3;
+}
+
+/* ============================================
    SPEAKING INDICATOR
    ============================================ */
 

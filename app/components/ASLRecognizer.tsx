@@ -18,6 +18,9 @@ export default function ASLRecognizer() {
   const [isPaused, setIsPaused] = useState(false);
   const [isMirrored, setIsMirrored] = useState(true);
 
+  // Conversation mode: 'conversation' = AI responds, 'speakForMe' = just speak the text
+  const [conversationMode, setConversationMode] = useState<'conversation' | 'speakForMe'>('speakForMe');
+
   // ElevenLabs Agent integration
   const { 
     isConnecting, 
@@ -27,6 +30,7 @@ export default function ASLRecognizer() {
     messages,
     agentTranscript,
     sendMessage,
+    speakText,
     startConversation,
     endConversation,
     clearMessages,
@@ -50,6 +54,8 @@ export default function ASLRecognizer() {
   const recognizedTextRef = useRef(recognizedText);
   const doneTriggeredRef = useRef(doneTriggered);
   const sendMessageRef = useRef(sendMessage);
+  const speakTextRef = useRef(speakText);
+  const conversationModeRef = useRef(conversationMode);
   
   // Keep refs up to date
   useEffect(() => {
@@ -63,6 +69,14 @@ export default function ASLRecognizer() {
   useEffect(() => {
     sendMessageRef.current = sendMessage;
   }, [sendMessage]);
+  
+  useEffect(() => {
+    speakTextRef.current = speakText;
+  }, [speakText]);
+  
+  useEffect(() => {
+    conversationModeRef.current = conversationMode;
+  }, [conversationMode]);
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -87,8 +101,9 @@ export default function ASLRecognizer() {
         setBothHandsProgress(0);
         bothHandsStartRef.current = 0;
         
-        // Send to ElevenLabs agent
-        sendMessageRef.current(currentText).then(() => {
+        // Use appropriate function based on mode
+        const sendFn = conversationModeRef.current === 'conversation' ? sendMessageRef.current : speakTextRef.current;
+        sendFn(currentText).then(() => {
           setRecognizedText("");
           setTimeout(() => setDoneTriggered(false), 2000);
         });
@@ -167,7 +182,12 @@ export default function ASLRecognizer() {
   
   const handleSendMessage = () => {
     if (recognizedText.trim()) {
-      sendMessage(recognizedText);
+      // Use appropriate function based on mode
+      if (conversationMode === 'conversation') {
+        sendMessage(recognizedText);
+      } else {
+        speakText(recognizedText);
+      }
       setRecognizedText("");
     }
   };
@@ -375,11 +395,15 @@ export default function ASLRecognizer() {
         <div className="button-group" style={{ marginTop: "var(--gap-sm)" }}>
           <button
             onClick={handleSendMessage}
-            disabled={!recognizedText.trim() || isConnecting || isSpeaking}
+            disabled={!recognizedText.trim() || isSpeaking}
             className={`btn ${recognizedText.trim() ? "btn-primary" : "btn-secondary"}`}
             style={{ flex: 1 }}
           >
-            {isConnecting ? "Connecting..." : isSpeaking ? "Speaking..." : "🔊 Send & Speak"}
+            {isSpeaking 
+              ? "Speaking..." 
+              : conversationMode === 'speakForMe' 
+                ? "🔊 Speak My Words" 
+                : "💬 Ask AI"}
           </button>
         </div>
       </div>
@@ -387,15 +411,35 @@ export default function ASLRecognizer() {
       {/* RIGHT PANEL: CONVERSATION */}
       <div className="panel panel--conversation">
         <div className="panel-header">
-          <h2>Conversation</h2>
+          <h2>Voice Output</h2>
           <div className="status-badge">
-            {isConnected && (
+            {isSpeaking && (
               <>
-                <span className={`status-dot ${isSpeaking ? "status-dot--speaking" : "status-dot--idle"}`}></span>
-                <span>{isSpeaking ? "Speaking" : "Connected"}</span>
+                <span className="status-dot status-dot--speaking"></span>
+                <span>Speaking</span>
               </>
             )}
           </div>
+        </div>
+
+        {/* Mode Toggle */}
+        <div className="mode-toggle">
+          <button
+            className={`mode-toggle-btn ${conversationMode === 'speakForMe' ? 'mode-toggle-btn--active' : ''}`}
+            onClick={() => setConversationMode('speakForMe')}
+          >
+            <span className="mode-icon">🗣️</span>
+            <span className="mode-label">Speak for Me</span>
+            <span className="mode-desc">Speaks your signed words aloud</span>
+          </button>
+          <button
+            className={`mode-toggle-btn ${conversationMode === 'conversation' ? 'mode-toggle-btn--active' : ''}`}
+            onClick={() => setConversationMode('conversation')}
+          >
+            <span className="mode-icon">💬</span>
+            <span className="mode-label">AI Responds</span>
+            <span className="mode-desc">AI assistant responds to you</span>
+          </button>
         </div>
 
         {/* Speaking Indicator */}
@@ -408,7 +452,7 @@ export default function ASLRecognizer() {
               <span></span>
               <span></span>
             </div>
-            <span>Agent is speaking...</span>
+            <span>{conversationMode === 'speakForMe' ? 'Speaking your message...' : 'AI is responding...'}</span>
           </div>
         )}
 
@@ -416,8 +460,12 @@ export default function ASLRecognizer() {
         <div className="chat-container">
           {messages.length === 0 ? (
             <div className="chat-empty">
-              <p>👋 Start signing to begin a conversation</p>
-              <p className="chat-empty-hint">Your decoded messages will appear here along with AI responses</p>
+              <p>👋 Start signing to begin</p>
+              <p className="chat-empty-hint">
+                {conversationMode === 'speakForMe' 
+                  ? 'Your signed messages will be spoken aloud for others to hear'
+                  : 'Your messages will appear here along with AI responses'}
+              </p>
             </div>
           ) : (
             <>
@@ -451,32 +499,43 @@ export default function ASLRecognizer() {
           )}
         </div>
 
-        {/* Connection Controls */}
+        {/* Connection Controls - Only show in conversation mode */}
         <div className="button-group" style={{ marginTop: "auto", paddingTop: "var(--gap-sm)" }}>
-          {!isConnected ? (
+          {conversationMode === 'conversation' ? (
+            !isConnected ? (
+              <button
+                onClick={startConversation}
+                disabled={isConnecting}
+                className="btn btn-primary btn-small"
+                style={{ flex: 1 }}
+              >
+                {isConnecting ? "Connecting..." : "🎙️ Connect to AI"}
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={endConversation}
+                  className="btn btn-secondary btn-small"
+                >
+                  Disconnect
+                </button>
+                <button
+                  onClick={clearMessages}
+                  className="btn btn-danger btn-small"
+                >
+                  Clear
+                </button>
+              </>
+            )
+          ) : (
             <button
-              onClick={startConversation}
-              disabled={isConnecting}
-              className="btn btn-primary btn-small"
+              onClick={clearMessages}
+              disabled={messages.length === 0}
+              className="btn btn-secondary btn-small"
               style={{ flex: 1 }}
             >
-              {isConnecting ? "Connecting..." : "🎙️ Start Conversation"}
+              Clear History
             </button>
-          ) : (
-            <>
-              <button
-                onClick={endConversation}
-                className="btn btn-secondary btn-small"
-              >
-                End
-              </button>
-              <button
-                onClick={clearMessages}
-                className="btn btn-danger btn-small"
-              >
-                Clear Chat
-              </button>
-            </>
           )}
         </div>
       </div>

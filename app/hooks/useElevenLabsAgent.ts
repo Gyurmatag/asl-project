@@ -18,6 +18,7 @@ interface UseElevenLabsAgentReturn {
   messages: ConversationMessage[];
   agentTranscript: string;
   sendMessage: (text: string) => Promise<void>;
+  speakText: (text: string) => Promise<void>;
   startConversation: () => Promise<void>;
   endConversation: () => Promise<void>;
   clearMessages: () => void;
@@ -25,12 +26,14 @@ interface UseElevenLabsAgentReturn {
 
 export function useElevenLabsAgent(): UseElevenLabsAgentReturn {
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isSpeakingTTS, setIsSpeakingTTS] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [agentTranscript, setAgentTranscript] = useState('');
   
   const pendingMessageRef = useRef<string | null>(null);
   const lastAgentMessageRef = useRef<string>('');
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Get signed URL from our API
   const getSignedUrl = useCallback(async (): Promise<string> => {
@@ -83,7 +86,7 @@ export function useElevenLabsAgent(): UseElevenLabsAgentReturn {
     onMessage: (message) => {
       console.log('Agent message received:', JSON.stringify(message, null, 2));
       
-      const msgAny = message as Record<string, unknown>;
+      const msgAny = message as unknown as Record<string, unknown>;
       
       // Check for agent/AI response text
       let agentText = '';
@@ -207,6 +210,65 @@ export function useElevenLabsAgent(): UseElevenLabsAgentReturn {
     }
   }, [conversation, startConversation]);
 
+  // Direct TTS - "Speak for Me" mode (just speaks the text, no AI response)
+  const speakText = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    
+    setError(null);
+    setIsSpeakingTTS(true);
+
+    // Add user message to conversation
+    const userMessage: ConversationMessage = {
+      id: `user-${Date.now()}`,
+      type: 'user',
+      text: text,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMessage]);
+
+    try {
+      const response = await fetch('/api/text-to-speech', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate speech');
+      }
+
+      // Get audio blob and play it
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      // Stop any existing audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        URL.revokeObjectURL(audioRef.current.src);
+      }
+
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+
+      audio.onended = () => {
+        setIsSpeakingTTS(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      audio.onerror = () => {
+        setIsSpeakingTTS(false);
+        setError('Failed to play audio');
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      await audio.play();
+    } catch (err) {
+      console.error('TTS error:', err);
+      setError(err instanceof Error ? err.message : 'Speech failed');
+      setIsSpeakingTTS(false);
+    }
+  }, []);
+
   const clearMessages = useCallback(() => {
     setMessages([]);
     setAgentTranscript('');
@@ -225,11 +287,12 @@ export function useElevenLabsAgent(): UseElevenLabsAgentReturn {
   return {
     isConnecting,
     isConnected: conversation.status === 'connected',
-    isSpeaking: conversation.isSpeaking,
+    isSpeaking: conversation.isSpeaking || isSpeakingTTS,
     error,
     messages,
     agentTranscript,
     sendMessage,
+    speakText,
     startConversation,
     endConversation,
     clearMessages,
